@@ -41,6 +41,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config advice.addIgnoredFile false
           git add docs/index.html
           git diff --staged --quiet || git commit -m "Auto-update calendar $(date +'%Y-%m-%d')"
           git push
