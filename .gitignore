@@ -1,0 +1,24 @@
+# Gmail credentials — never upload these
+credentials.json
+token.json
+
+# Sensitive data — local only, never upload
+history/
+data/
+config/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local output
+output/
+
+# Local debug scripts
+debug_*.py
+check_*.py
+inspect_*.py
+
+*.b64
+creds_new.txt
+token_new.txt

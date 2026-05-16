@@ -1,0 +1,26 @@
+{
+  "_comment": "active=true means email data will be fetched/refreshed for this account. false=historical data kept but no new fetching.",
+  "accounts": {
+    "28144020":  { "broker": "Vantage",   "active": true,  "label": "Current active account" },
+
+    "11501530":  { "broker": "Vantage",   "active": false, "label": "" },
+    "143041":    { "broker": "Vantage",   "active": false, "label": "" },
+    "1447393":   { "broker": "Vantage",   "active": false, "label": "" },
+    "1551696":   { "broker": "Vantage",   "active": false, "label": "" },
+    "16186782":  { "broker": "Vantage",   "active": false, "label": "" },
+    "19660504":  { "broker": "Vantage",   "active": false, "label": "" },
+    "24027437":  { "broker": "Vantage",   "active": false, "label": "" },
+    "24664300":  { "broker": "Vantage",   "active": false, "label": "" },
+    "51854377":  { "broker": "Vantage",   "active": false, "label": "" },
+    "51854494":  { "broker": "Vantage",   "active": false, "label": "" },
+
+    "50342137":  { "broker": "Hantec",    "active": false, "label": "" },
+    "50034565":  { "broker": "Hantec",    "active": false, "label": "" },
+    "55016709":  { "broker": "Hantec",    "active": false, "label": "" },
+
+    "352095858": { "broker": "XM",        "active": false, "label": "" },
+
+    "30010346":  { "broker": "AxiTrader", "active": false, "label": "" },
+    "6637541":   { "broker": "AxiTrader", "active": false, "label": "" }
+  }
+}
