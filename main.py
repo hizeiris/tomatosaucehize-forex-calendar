@@ -16,6 +16,7 @@ from parsers.base import DailyRecord
 from parsers.mt5_history import load_mt5_history
 from parsers.myfxbook_csv import load_myfxbook_csv
 from calendar_generator import generate_calendar_html
+from charts_generator import generate_charts_html
 
 DATA_FILE    = Path("data/trades.json")
 OUTPUT_FILE  = Path("output/calendar.html")
@@ -249,6 +250,10 @@ def main(refresh: bool = False):
     OUTPUT_FILE.parent.mkdir(exist_ok=True)
     print(f"\nGenerating calendar with {len(all_records)} records...")
     generate_calendar_html(all_records, str(OUTPUT_FILE), account_cfg=cfg)
+
+    CHARTS_FILE = OUTPUT_FILE.parent / "charts.html"
+    generate_charts_html(all_records, str(CHARTS_FILE))
+
     print(f"\nDone! Open this file in your browser:")
     print(f"  {OUTPUT_FILE.resolve()}")
 

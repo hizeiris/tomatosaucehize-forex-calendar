@@ -219,10 +219,13 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
   }}
   *{{box-sizing:border-box;margin:0;padding:0}}
   body{{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}}
-  .header{{background:var(--surface);border-bottom:1px solid var(--border);padding:20px 32px;display:flex;align-items:center;justify-content:space-between}}
+  .header{{background:var(--surface);border-bottom:1px solid var(--border);padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}}
   .header h1{{font-size:22px;font-weight:700;letter-spacing:-.5px}}
   .header h1 span{{color:#22c55e}}
   .updated{{font-size:12px;color:var(--muted)}}
+  .header-btns{{display:flex;gap:8px}}
+  .header-btn{{background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:7px 14px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}}
+  .header-btn:hover{{border-color:var(--text);color:var(--text)}}
   .layout{{display:grid;grid-template-columns:270px 1fr;gap:24px;padding:24px 32px;max-width:1400px;margin:0 auto}}
   .sidebar{{display:flex;flex-direction:column;gap:16px}}
   .card{{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}}
@@ -334,6 +337,9 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
 <body>
 <div class="header">
   <h1>Forex P/L <span>Calendar</span></h1>
+  <div class="header-btns">
+    <a class="header-btn" href="charts.html">📊 Charts</a>
+  </div>
   <span class="updated">Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}</span>
 </div>
 
