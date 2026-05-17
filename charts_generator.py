@@ -267,8 +267,6 @@ function renderChart() {{
 
   if (type === 'equity') {{
     // Line chart
-    const lastVal  = values[values.length - 1] || 0;
-    const lineColor = lastVal >= 0 ? '#22c55e' : '#ef4444';
     chartInstance = new Chart(ctx, {{
       type: 'line',
       data: {{
@@ -276,13 +274,23 @@ function renderChart() {{
         datasets: [{{
           label: 'Cumulative P/L',
           data: values,
-          borderColor: lineColor,
-          backgroundColor: lineColor + '18',
           borderWidth: 2,
           pointRadius: 0,
           pointHoverRadius: 4,
-          fill: true,
+          fill: false,
           tension: 0.3,
+          segment: {{
+            borderColor: ctx => ctx.p1.parsed.y >= 0 ? '#22c55e' : '#ef4444',
+          }},
+        }},
+        {{
+          label: 'Zero line',
+          data: labels.map(() => 0),
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          borderDash: [4,4],
+          pointRadius: 0,
+          fill: false,
         }}]
       }},
       options: {{
