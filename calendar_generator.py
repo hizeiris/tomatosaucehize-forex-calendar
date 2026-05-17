@@ -145,14 +145,18 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
                 f'title="Dep / Wd">⊕</span>'
             ) if has_dw else ""
 
-            # Active/inactive status dot from config
-            if account_cfg and a in account_cfg:
-                is_active  = account_cfg[a].get("active", False)
-                dot_color  = "#22c55e" if is_active else "#ef4444"
-                dot_title  = "Active" if is_active else "Inactive"
-                status_dot = f'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:{dot_color};margin-right:4px;vertical-align:middle" title="{dot_title}"></span>'
+            # Auto-detect active/inactive: Green if Dep/Wd within last 30 days
+            today = date.today()
+            dw_dates = [r.date for r in a_recs if r.deposit != 0 or r.withdrawal != 0]
+            if dw_dates:
+                last_dw   = max(dw_dates)
+                days_ago  = (today - last_dw).days
+                dot_color = "#22c55e" if days_ago <= 60 else "#ef4444"
+                dot_title = f"{'Active' if days_ago <= 60 else 'Inactive'} — last Dep/Wd: {last_dw} ({days_ago}d ago)"
             else:
-                status_dot = ""
+                dot_color = "#ef4444"
+                dot_title = "Inactive — no Dep/Wd found"
+            status_dot = f'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:{dot_color};margin-right:4px;vertical-align:middle" title="{dot_title}"></span>'
 
             acct_rows += (
                 f'<div class="acct-row">'
