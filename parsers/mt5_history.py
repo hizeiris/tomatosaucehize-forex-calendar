@@ -59,14 +59,25 @@ def _parse_file(fpath: str) -> list[DailyRecord]:
     # ── Trade rows start at row 8 ────────────────────────────────────────
     # Col 0  = open time  (YYYY.MM.DD HH:MM:SS)
     # Col 16 = close time (YYYY.MM.DD HH:MM:SS)
+    # Col 18 = commission
+    # Col 19 = swap
     # Col 20 = profit     (may use space as thousands sep: "6 591.00")
     # Files with no closed trades have only 15 columns — skip gracefully.
 
     if df.shape[1] < 21:
         return []  # no closed-position columns present
 
+    has_swap = df.shape[1] >= 20
+
     DATE_PAT = re.compile(r"^(\d{4})\.(\d{2})\.(\d{2})")
     by_date: dict[date, float] = {}
+
+    def _to_float(val: str) -> float:
+        clean = str(val).replace(" ", "").replace(",", "")
+        try:
+            return float(clean)
+        except ValueError:
+            return 0.0
 
     for idx in range(8, len(df)):
         row = df.iloc[idx]
@@ -87,17 +98,19 @@ def _parse_file(fpath: str) -> list[DailyRecord]:
         except ValueError:
             continue
 
-        # "6 591.00" → 6591.0,  "nan" or "" → skip
-        profit_clean = profit_str.replace(" ", "").replace(",", "")
-        try:
-            profit = float(profit_clean)
-        except ValueError:
+        profit = _to_float(profit_str)
+        if profit == 0.0 and profit_str.strip() in ("", "nan"):
             continue
 
-        if is_cent:
-            profit /= 100.0
+        # Include swap (col 19) in daily P/L
+        swap = _to_float(str(row.iloc[19])) if has_swap else 0.0
 
-        by_date[close_date] = round(by_date.get(close_date, 0.0) + profit, 2)
+        total = profit + swap
+
+        if is_cent:
+            total /= 100.0
+
+        by_date[close_date] = round(by_date.get(close_date, 0.0) + total, 2)
 
     return [
         DailyRecord(
