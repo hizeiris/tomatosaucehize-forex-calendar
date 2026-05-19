@@ -226,6 +226,7 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
   .header-btns{{display:flex;gap:8px}}
   .header-btn{{background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:7px 14px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}}
   .header-btn:hover{{border-color:var(--text);color:var(--text)}}
+  .header-btn.active{{border-color:#22c55e;color:#22c55e}}
   .layout{{display:grid;grid-template-columns:270px 1fr;gap:24px;padding:24px 32px;max-width:1400px;margin:0 auto}}
   .sidebar{{display:flex;flex-direction:column;gap:16px}}
   .card{{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}}
@@ -277,9 +278,8 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
   .day-cell.flat .day-pl{{color:var(--flat)}}
   .day-brokers{{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px}}
   .day-broker-dot{{width:6px;height:6px;border-radius:50%;display:inline-block}}
-  .day-dw{{font-size:9px;margin-top:2px;font-weight:500}}
-  .day-dep{{color:#ef4444}}
-  .day-wd{{color:#60a5fa}}
+  .dep-icon{{position:absolute;right:5px;bottom:5px;font-size:11px;font-weight:800;color:#ef4444;background:rgba(239,68,68,.22);border-radius:3px;width:15px;height:15px;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none}}
+  .wd-icon{{position:absolute;right:5px;top:5px;font-size:11px;font-weight:800;color:#22c55e;background:rgba(34,197,94,.22);border-radius:3px;width:15px;height:15px;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none}}
   /* Tooltip */
   .tooltip{{display:none;position:fixed;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px 16px;z-index:1000;box-shadow:0 8px 32px rgba(0,0,0,.6);min-width:240px;pointer-events:none}}
   .tooltip.visible{{display:block}}
@@ -338,6 +338,7 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
 <div class="header">
   <h1>Forex P/L <span>Calendar</span></h1>
   <div class="header-btns">
+    <button class="header-btn" id="viewToggle" onclick="toggleView()">💳 Dep/Wd</button>
     <a class="header-btn" href="charts.html">📊 Charts</a>
   </div>
   <span class="updated">Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}</span>
@@ -449,19 +450,16 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
                             for b, binfo in info["brokers"].items()
                             if binfo["pl"] != 0.0
                         )
-                        dep     = info.get("dep", 0.0)
-                        wd      = info.get("wd", 0.0)
-                        dw_html = ""
-                        if dep != 0:
-                            dw_html += f'<div class="day-dw day-dep">-${dep:,.0f}</div>'
-                        if wd != 0:
-                            dw_html += f'<div class="day-dw day-wd">+${abs(wd):,.0f}</div>'
+                        dep      = info.get("dep", 0.0)
+                        wd       = info.get("wd", 0.0)
+                        dep_icon = f'<span class="dep-icon" title="Deposit: -${dep:,.2f}">↓</span>' if dep != 0 else ""
+                        wd_icon  = f'<span class="wd-icon" title="Withdrawal: +${abs(wd):,.2f}">↑</span>' if wd != 0 else ""
                         html += (
-                            f'        <div class="day-cell {css}" onclick="showTooltip(event,\'{iso}\')" data-date="{iso}">\n'
+                            f'        <div class="day-cell {css}" onclick="showTooltip(event,\'{iso}\')" data-date="{iso}" data-dep="{dep}" data-wd="{wd}">\n'
                             f'          <div class="day-num">{day_num}</div>\n'
                             f'          <div class="day-pl">${total:+,.2f}</div>\n'
-                            f'          {dw_html}\n'
                             f'          <div class="day-brokers">{dots}</div>\n'
+                            f'          {dep_icon}{wd_icon}\n'
                             f'        </div>\n'
                         )
                     else:
@@ -489,6 +487,21 @@ function maskAcct(a) {{
 
 let activeBroker  = 'ALL';
 let activeAccount = 'ALL';
+let viewMode      = 'pl';   // 'pl' or 'dw'
+
+// ── View toggle (P/L ↔ Dep/Wd) ───────────────────────────────────────────────
+function toggleView() {{
+  viewMode = viewMode === 'pl' ? 'dw' : 'pl';
+  const btn = document.getElementById('viewToggle');
+  if (viewMode === 'dw') {{
+    btn.textContent = '📊 P/L';
+    btn.classList.add('active');
+  }} else {{
+    btn.textContent = '💳 Dep/Wd';
+    btn.classList.remove('active');
+  }}
+  updateCalendar();
+}}
 
 // ── Mobile sidebar toggle ────────────────────────────────────────────────────
 function toggleSidebar() {{
@@ -560,24 +573,48 @@ function updateCalendar() {{
     const iso = cell.dataset.date;
     const d   = daysData[iso];
     if (!d) return;
-
-    let pl = null;
-    if (activeBroker === 'ALL') {{
-      pl = d.total;
-    }} else if (activeAccount === 'ALL') {{
-      pl = d.brokers[activeBroker] ? d.brokers[activeBroker].pl : null;
-    }} else {{
-      const ba = d.brokers[activeBroker];
-      pl = (ba && ba.accounts[activeAccount]) ? ba.accounts[activeAccount].pl : null;
-    }}
-
     const plEl = cell.querySelector('.day-pl');
-    if (pl === null) {{
-      plEl.textContent = '-';
-      cell.className = 'day-cell flat';
+
+    if (viewMode === 'dw') {{
+      // ── Dep/Wd mode ──────────────────────────────────────────────────────
+      let dep = 0, wd = 0;
+      if (activeBroker === 'ALL') {{
+        dep = d.dep || 0;  wd = d.wd || 0;
+      }} else if (activeAccount === 'ALL') {{
+        const b = d.brokers[activeBroker];
+        if (b) {{ dep = b.dep || 0; wd = b.wd || 0; }}
+      }} else {{
+        const b  = d.brokers[activeBroker];
+        const a  = b && b.accounts[activeAccount];
+        if (a) {{ dep = a.dep || 0; wd = a.wd || 0; }}
+      }}
+      if (dep !== 0 || wd !== 0) {{
+        const net = dep + wd;   // dep>0=cost, wd<0=return
+        plEl.textContent = (net > 0 ? '-$' : '+$') + Math.abs(net).toFixed(2);
+        cell.className   = 'day-cell ' + (dep !== 0 && wd === 0 ? 'loss' : wd !== 0 && dep === 0 ? 'profit' : net > 0 ? 'loss' : 'profit');
+      }} else {{
+        plEl.textContent = '-';
+        cell.className   = 'day-cell flat';
+      }}
+
     }} else {{
-      plEl.textContent = '$' + (pl >= 0 ? '+' : '') + pl.toFixed(2);
-      cell.className = 'day-cell ' + (pl > 0 ? 'profit' : pl < 0 ? 'loss' : 'flat');
+      // ── P/L mode ─────────────────────────────────────────────────────────
+      let pl = null;
+      if (activeBroker === 'ALL') {{
+        pl = d.total;
+      }} else if (activeAccount === 'ALL') {{
+        pl = d.brokers[activeBroker] ? d.brokers[activeBroker].pl : null;
+      }} else {{
+        const ba = d.brokers[activeBroker];
+        pl = (ba && ba.accounts[activeAccount]) ? ba.accounts[activeAccount].pl : null;
+      }}
+      if (pl === null) {{
+        plEl.textContent = '-';
+        cell.className   = 'day-cell flat';
+      }} else {{
+        plEl.textContent = '$' + (pl >= 0 ? '+' : '') + pl.toFixed(2);
+        cell.className   = 'day-cell ' + (pl > 0 ? 'profit' : pl < 0 ? 'loss' : 'flat');
+      }}
     }}
   }});
 }}
