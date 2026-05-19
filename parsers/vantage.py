@@ -40,9 +40,9 @@ class VantageParser(BaseParser):
 
         closed_pl   = self._val(section, r"Closed\s+Trade\s+P/L")
         deposit_wd  = self._val(section, r"Deposit\s*/\s*Withdrawal")
-        balance     = self._val(section, r"(?<!\w)Balance\s*:")
+        balance     = self._val(section, r"^Balance\s*:",      re.MULTILINE)
         prev_bal    = self._val(section, r"Previous\s+Ledger\s+Balance")
-        equity      = self._val(section, r"(?<!\w)Equity\s*:")
+        equity      = self._val(section, r"^Equity\s*:",       re.MULTILINE)
         floating_pl = self._val(section, r"Floating\s+P/L")
 
         # True daily P/L = Balance − Previous Ledger Balance − Deposit/Withdrawal
@@ -63,8 +63,8 @@ class VantageParser(BaseParser):
             floating_pl=floating_pl,
         )
 
-    def _val(self, text: str, pattern: str) -> float:
-        m = re.search(pattern, text, re.IGNORECASE)
+    def _val(self, text: str, pattern: str, flags: int = re.IGNORECASE) -> float:
+        m = re.search(pattern, text, flags | re.IGNORECASE)
         if not m:
             return 0.0
         snippet = text[m.end(): m.end() + 80].replace("\xa0", " ")
