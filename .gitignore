@@ -4,7 +4,7 @@ token.json
 
 # Sensitive data — local only, never upload
 history/
-data/
+data/trades.json
 config/
 
 # Python cache
