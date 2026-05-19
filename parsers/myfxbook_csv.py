@@ -107,6 +107,11 @@ def _parse_file(fpath: str, usc_accounts: set[str] | None = None,
                 amount /= 100.0
 
             if action in ("deposit", "withdrawal"):
+                # Skip rebate transfers from the internal rebate account (143041)
+                comment = (row.get("Comment") or "").strip()
+                if "143041" in comment:
+                    continue
+
                 # Use open date for deposits/withdrawals (no close date)
                 date_str = (row.get("Open Date") or "").strip()
                 try:
