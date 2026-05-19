@@ -112,15 +112,56 @@ def _parse_file(fpath: str) -> list[DailyRecord]:
 
         by_date[close_date] = round(by_date.get(close_date, 0.0) + total, 2)
 
-    return [
-        DailyRecord(
-            broker=broker,
-            account=account,
-            date=d,
-            closed_pl=pl,
-            deposit_withdrawal=0.0,
-            balance=0.0,
-            equity=0.0,
-        )
-        for d, pl in sorted(by_date.items())
-    ]
+    # ── Balance / Deposit / Withdrawal rows (Deals section) ─────────────────
+    dw_by_date: dict[date, tuple[float, float]] = {}   # date -> (dep, wd)
+    deals_start = None
+    for i in range(len(df)):
+        vals = [str(v) for v in df.iloc[i]]
+        if "Deal" in vals and "Balance" in vals:
+            deals_start = i
+            break
+
+    if deals_start is not None:
+        for idx in range(deals_start + 1, len(df)):
+            row       = df.iloc[idx]
+            time_str  = str(row.iloc[0])
+            type_str  = str(row.iloc[3]).lower().strip()
+            if not DATE_PAT.match(time_str):
+                continue
+            if type_str != "balance":          # skip 'credit', 'buy', 'sell' etc.
+                continue
+            dm = DATE_PAT.match(time_str)
+            try:
+                d = date(int(dm.group(1)), int(dm.group(2)), int(dm.group(3)))
+            except ValueError:
+                continue
+            amt = _to_float(str(row.iloc[12]))
+            if amt == 0.0:
+                continue
+            if is_cent:
+                amt = round(amt / 100.0, 2)
+            dep_cur, wd_cur = dw_by_date.get(d, (0.0, 0.0))
+            if amt > 0:
+                dw_by_date[d] = (round(dep_cur + amt, 2), wd_cur)
+            else:
+                dw_by_date[d] = (dep_cur, round(wd_cur + amt, 2))
+
+    # ── Merge trades + dep/wd ────────────────────────────────────────────────
+    all_dates = set(by_date.keys()) | set(dw_by_date.keys())
+    result = []
+    for d in sorted(all_dates):
+        pl          = by_date.get(d, 0.0)
+        dep, wd     = dw_by_date.get(d, (0.0, 0.0))
+        dw          = round(dep + wd, 2)
+        result.append(DailyRecord(
+            broker             = broker,
+            account            = account,
+            date               = d,
+            closed_pl          = pl,
+            deposit_withdrawal = dw,
+            deposit            = dep,
+            withdrawal         = wd,
+            balance            = 0.0,
+            equity             = 0.0,
+        ))
+    return result
