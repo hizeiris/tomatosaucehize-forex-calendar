@@ -347,6 +347,14 @@ def main(refresh: bool = False, freeze: bool = False):
     CHARTS_FILE = OUTPUT_FILE.parent / "charts.html"
     generate_charts_html(all_records, str(CHARTS_FILE))
 
+    # ── Sync docs/ (GitHub Pages) ─────────────────────────────────────────────
+    import shutil
+    docs_dir = Path("docs")
+    if docs_dir.exists():
+        shutil.copy(OUTPUT_FILE, docs_dir / "calendar.html")
+        shutil.copy(CHARTS_FILE, docs_dir / "charts.html")
+        print(f"  docs/ synced")
+
     print(f"\nDone! Open this file in your browser:")
     print(f"  {OUTPUT_FILE.resolve()}")
 
