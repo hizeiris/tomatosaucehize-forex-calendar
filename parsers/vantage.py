@@ -61,6 +61,8 @@ class VantageParser(BaseParser):
             balance=balance,
             equity=equity,
             floating_pl=floating_pl,
+            deposit=max(0.0, deposit_wd),
+            withdrawal=min(0.0, deposit_wd),
         )
 
     def _val(self, text: str, pattern: str, flags: int = re.IGNORECASE) -> float:

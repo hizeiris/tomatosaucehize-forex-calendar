@@ -69,19 +69,25 @@ def print_account_summary(cfg: dict):
 def _records_from_list(raw: list) -> list[DailyRecord]:
     records = []
     for item in raw:
-        dw = item.get("deposit_withdrawal", 0.0)
+        dw  = item.get("deposit_withdrawal", 0.0)
+        dep = item.get("deposit",    0.0)
+        wd  = item.get("withdrawal", 0.0)
+        # If deposit/withdrawal were saved as 0 but dw is non-zero, derive them
+        if dep == 0.0 and wd == 0.0 and dw != 0.0:
+            dep = max(0.0, dw)
+            wd  = min(0.0, dw)
         records.append(DailyRecord(
-            broker          = item["broker"],
-            account         = item["account"],
-            date            = date.fromisoformat(item["date"]),
-            closed_pl       = item["closed_pl"],
+            broker             = item["broker"],
+            account            = item["account"],
+            date               = date.fromisoformat(item["date"]),
+            closed_pl          = item["closed_pl"],
             deposit_withdrawal = dw,
-            balance         = item["balance"],
-            equity          = item["equity"],
-            floating_pl     = item.get("floating_pl", 0.0),
-            statement_type  = item.get("statement_type", "daily"),
-            deposit         = item.get("deposit",    max(0.0,  dw)),
-            withdrawal      = item.get("withdrawal", min(0.0,  dw)),
+            balance            = item["balance"],
+            equity             = item["equity"],
+            floating_pl        = item.get("floating_pl", 0.0),
+            statement_type     = item.get("statement_type", "daily"),
+            deposit            = dep,
+            withdrawal         = wd,
         ))
     return records
 
