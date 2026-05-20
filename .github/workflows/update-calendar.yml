@@ -26,24 +26,14 @@ jobs:
           echo "${{ secrets.GMAIL_CREDENTIALS }}" | base64 -d > credentials.json
           echo "${{ secrets.GMAIL_TOKEN }}"       | base64 -d > token.json
 
-      - name: Run calendar update
-        run: python main.py --refresh
+      - name: Fetch today's email and update calendar
+        run: python main.py --today
 
-      - name: Copy calendar to docs/ (GitHub Pages)
-        run: |
-          mkdir -p docs
-          cp output/calendar.html docs/index.html
-          cp output/calendar.html docs/calendar.html
-          cp output/charts.html docs/charts.html
-
-      - name: Save updated token
-        run: echo "$(base64 -w 0 token.json)" > /tmp/new_token.b64
-
-      - name: Commit updated data
+      - name: Commit if updated
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config advice.addIgnoredFile false
-          git add docs/index.html docs/calendar.html docs/charts.html
-          git diff --staged --quiet || git commit -m "Auto-update calendar $(date +'%Y-%m-%d')"
-          git push
+          git add docs/calendar.html docs/charts.html data/history_frozen.json
+          git diff --staged --quiet \
+            && echo "No new email today — nothing to commit." \
+            || (git commit -m "Auto-update calendar $(date +'%Y-%m-%d')" && git push)

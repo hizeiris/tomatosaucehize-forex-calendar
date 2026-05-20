@@ -258,9 +258,52 @@ def fetch_new_records(existing: list[DailyRecord],
     return new_records
 
 
+def fetch_today_records(active_accts: set[str]) -> list[DailyRecord]:
+    """
+    Fetch ONLY today's email records from Gmail.
+    Searches the last 2 days (to handle timezone offsets) and filters to today's date.
+    Returns [] if nothing found — caller should skip that day.
+    """
+    today = date.today()
+    print("Connecting to Gmail...")
+    service = get_gmail_service()
+
+    found: list[DailyRecord] = []
+    seen_keys: set[tuple] = set()
+
+    for parser in ALL_PARSERS:
+        query = f"{parser.gmail_query} newer_than:2d"
+        print(f"\n[{parser.broker_name}] Searching: {query}")
+        messages = search_emails(service, query, max_results=50)
+        print(f"  Found {len(messages)} emails (last 2 days)")
+
+        for msg in messages:
+            try:
+                subject, date_header, html_body, plain_body = get_email_body(
+                    service, msg["id"])
+                record = parser.parse(subject, date_header, html_body, plain_body)
+                if record is None:
+                    continue
+                if record.date != today:
+                    continue                              # only keep today
+                if active_accts and record.account not in active_accts:
+                    continue
+                key = (record.broker, record.account, record.date.isoformat())
+                if key in seen_keys:
+                    continue
+                found.append(record)
+                seen_keys.add(key)
+                print(f"  + {record.date} | {record.broker} #{record.account} "
+                      f"| P/L: ${record.closed_pl:+.2f}")
+            except Exception as e:
+                print(f"  ! Error parsing msg {msg['id']}: {e}")
+
+    return found
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main(refresh: bool = False, freeze: bool = False):
+def main(refresh: bool = False, freeze: bool = False, today_mode: bool = False):
     print("=" * 50)
     print("  Forex P/L Calendar")
     print("=" * 50)
@@ -313,6 +356,26 @@ def main(refresh: bool = False, freeze: bool = False):
         print("\nUpdating frozen snapshot...")
         save_frozen_records(all_records)
 
+    # ── TODAY MODE: fetch only today's email, merge into frozen ──────────────
+    elif today_mode:
+        print("\n[ TODAY MODE — fetching today's email only ]")
+
+        if not frozen_records:
+            print("\nERROR: No frozen snapshot. Run locally first: py main.py --freeze")
+            sys.exit(1)
+
+        today_records = fetch_today_records(active_accts)
+
+        if not today_records:
+            print(f"\nNo email found for today ({date.today()}). Nothing to update.")
+            return  # Skip calendar regeneration — nothing changed
+
+        print(f"\nFound {len(today_records)} record(s) for today.")
+        all_records = merge_frozen_with_email(frozen_records, today_records)
+
+        print("\nUpdating frozen snapshot...")
+        save_frozen_records(all_records)
+
     # ── ACTIONS MODE: no local files, use frozen + new emails ─────────────────
     else:
         print("\n[ ACTIONS MODE — using frozen snapshot + new emails ]")
@@ -362,4 +425,5 @@ def main(refresh: bool = False, freeze: bool = False):
 if __name__ == "__main__":
     refresh_flag = "--refresh" in sys.argv or "-r" in sys.argv
     freeze_flag  = "--freeze"  in sys.argv or "-f" in sys.argv
-    main(refresh=refresh_flag, freeze=freeze_flag)
+    today_flag   = "--today"   in sys.argv or "-t" in sys.argv
+    main(refresh=refresh_flag, freeze=freeze_flag, today_mode=today_flag)
