@@ -414,9 +414,10 @@ def main(refresh: bool = False, freeze: bool = False, today_mode: bool = False):
     import shutil
     docs_dir = Path("docs")
     if docs_dir.exists():
+        shutil.copy(OUTPUT_FILE, docs_dir / "index.html")     # root URL
         shutil.copy(OUTPUT_FILE, docs_dir / "calendar.html")
         shutil.copy(CHARTS_FILE, docs_dir / "charts.html")
-        print(f"  docs/ synced")
+        print(f"  docs/ synced (index.html + calendar.html + charts.html)")
 
     print(f"\nDone! Open this file in your browser:")
     print(f"  {OUTPUT_FILE.resolve()}")

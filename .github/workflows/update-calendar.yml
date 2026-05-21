@@ -33,7 +33,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/calendar.html docs/charts.html data/history_frozen.json
+          git add docs/index.html docs/calendar.html docs/charts.html data/history_frozen.json
           git diff --staged --quiet \
             && echo "No new email today — nothing to commit." \
             || (git commit -m "Auto-update calendar $(date +'%Y-%m-%d')" && git push)
