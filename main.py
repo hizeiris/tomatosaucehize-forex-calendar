@@ -260,11 +260,14 @@ def fetch_new_records(existing: list[DailyRecord],
 
 def fetch_today_records(active_accts: set[str]) -> list[DailyRecord]:
     """
-    Fetch ONLY today's email records from Gmail.
-    Searches the last 2 days (to handle timezone offsets) and filters to today's date.
+    3-step process — fetches new statement records from emails arriving today:
+      1. Search emails from the last 24 hours
+      2. Filter only active accounts
+      3. Gather data (whatever statement date the email contains)
+    Note: Brokers email yesterday's statement on the morning of today,
+    so `record.date` is usually yesterday — that's expected.
     Returns [] if nothing found — caller should skip that day.
     """
-    today = date.today()
     print("Connecting to Gmail...")
     service = get_gmail_service()
 
@@ -272,10 +275,14 @@ def fetch_today_records(active_accts: set[str]) -> list[DailyRecord]:
     seen_keys: set[tuple] = set()
 
     for parser in ALL_PARSERS:
-        query = f"{parser.gmail_query} newer_than:2d"
-        print(f"\n[{parser.broker_name}] Searching: {query}")
-        messages = search_emails(service, query, max_results=50)
-        print(f"  Found {len(messages)} emails (last 2 days)")
+        # ── Step 1: Search emails from the last 24 hours ──────────────────────
+        query = f"{parser.gmail_query} newer_than:1d"
+        print(f"\n[{parser.broker_name}] Step 1 — Search last 24h: {query}")
+        messages = search_emails(service, query, max_results=20)
+        print(f"  Found {len(messages)} email(s)")
+
+        if not messages:
+            continue
 
         for msg in messages:
             try:
@@ -284,13 +291,18 @@ def fetch_today_records(active_accts: set[str]) -> list[DailyRecord]:
                 record = parser.parse(subject, date_header, html_body, plain_body)
                 if record is None:
                     continue
-                if record.date != today:
-                    continue                              # only keep today
+
+                # ── Step 2: Filter only active accounts ───────────────────────
                 if active_accts and record.account not in active_accts:
+                    print(f"  - Skip inactive #{record.account}")
                     continue
+
+                # Skip duplicates (same broker/account/date)
                 key = (record.broker, record.account, record.date.isoformat())
                 if key in seen_keys:
                     continue
+
+                # ── Step 3: Gather data ───────────────────────────────────────
                 found.append(record)
                 seen_keys.add(key)
                 print(f"  + {record.date} | {record.broker} #{record.account} "
@@ -298,6 +310,7 @@ def fetch_today_records(active_accts: set[str]) -> list[DailyRecord]:
             except Exception as e:
                 print(f"  ! Error parsing msg {msg['id']}: {e}")
 
+    print(f"\nTotal gathered: {len(found)} record(s)")
     return found
 
 
@@ -337,27 +350,9 @@ def main(refresh: bool = False, freeze: bool = False, today_mode: bool = False):
     cached = load_cached_records()
     print(f"Loaded {len(cached)} cached email records from {DATA_FILE}")
 
-    # ── LOCAL MODE: has MT5/CSV files ─────────────────────────────────────────
-    if has_local_data:
-        print("\n[ LOCAL MODE — using MT5 + CSV + email ]")
-
-        if refresh or freeze or not cached:
-            new = fetch_new_records(cached, active_accts)
-            email_records = deduplicate([], [], cached + new)
-            save_records(email_records)
-            print(f"\nSaved {len(email_records)} email records to {DATA_FILE}")
-        else:
-            email_records = cached
-            print("Using cached email data. Run with --refresh to re-fetch.")
-
-        all_records = deduplicate(mt5_records, myfxbook_records, email_records)
-
-        # Auto-update frozen snapshot
-        print("\nUpdating frozen snapshot...")
-        save_frozen_records(all_records)
-
     # ── TODAY MODE: fetch only today's email, merge into frozen ──────────────
-    elif today_mode:
+    # (takes priority — works regardless of whether local files exist)
+    if today_mode:
         print("\n[ TODAY MODE — fetching today's email only ]")
 
         if not frozen_records:
@@ -373,6 +368,25 @@ def main(refresh: bool = False, freeze: bool = False, today_mode: bool = False):
         print(f"\nFound {len(today_records)} record(s) for today.")
         all_records = merge_frozen_with_email(frozen_records, today_records)
 
+        print("\nUpdating frozen snapshot...")
+        save_frozen_records(all_records)
+
+    # ── LOCAL MODE: has MT5/CSV files ─────────────────────────────────────────
+    elif has_local_data:
+        print("\n[ LOCAL MODE — using MT5 + CSV + email ]")
+
+        if refresh or freeze or not cached:
+            new = fetch_new_records(cached, active_accts)
+            email_records = deduplicate([], [], cached + new)
+            save_records(email_records)
+            print(f"\nSaved {len(email_records)} email records to {DATA_FILE}")
+        else:
+            email_records = cached
+            print("Using cached email data. Run with --refresh to re-fetch.")
+
+        all_records = deduplicate(mt5_records, myfxbook_records, email_records)
+
+        # Auto-update frozen snapshot
         print("\nUpdating frozen snapshot...")
         save_frozen_records(all_records)
 
