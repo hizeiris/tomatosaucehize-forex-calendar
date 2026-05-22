@@ -2,7 +2,10 @@ name: Update Forex Calendar
 
 on:
   schedule:
-    - cron: '0 1 * * *'   # 01:00 UTC = 08:00 AM Bangkok time, every day
+    # Two triggers for redundancy — GitHub free tier delays scheduled jobs.
+    # Off-peak UTC + odd minutes fire much more reliably.
+    - cron: '17 0 * * *'   # 00:17 UTC = 07:17 AM Bangkok (primary)
+    - cron: '37 3 * * *'   # 03:37 UTC = 10:37 AM Bangkok (backup)
   workflow_dispatch:        # also allows manual run from GitHub website
 
 jobs:
