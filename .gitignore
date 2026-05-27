@@ -1,6 +1,7 @@
 # Gmail credentials — never upload these
 credentials.json
 token.json
+token.json.*
 
 # Sensitive data — local only, never upload
 history/
