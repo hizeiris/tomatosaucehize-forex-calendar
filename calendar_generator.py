@@ -340,6 +340,7 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
   <div class="header-btns">
     <button class="header-btn" id="viewToggle" onclick="toggleView()">💳 Dep/Wd</button>
     <a class="header-btn" href="charts.html">📊 Charts</a>
+    <a class="header-btn" href="https://github.com/hizeiris/tomatosaucehize-forex-calendar/actions/workflows/update-calendar.yml" target="_blank" title="Trigger workflow on GitHub (click Run workflow there)">🔄 Update</a>
   </div>
   <span class="updated">Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}</span>
 </div>
