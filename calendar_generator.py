@@ -160,7 +160,11 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
 
             acct_rows += (
                 f'<div class="acct-row">'
-                f'  <span class="stat-label" style="padding-left:16px;font-size:11px">{status_dot}#{_mask_acct(a)}{toggle_btn}</span>'
+                f'  <label class="acct-label" title="Show/hide on calendar">'
+                f'    <input type="checkbox" class="acct-cb" data-broker="{b}" data-account="{a}" '
+                f'           onchange="onAcctCheck(\'{b}\',\'{a}\',this.checked)" checked>'
+                f'    <span class="stat-label" style="font-size:11px">{status_dot}#{_mask_acct(a)}{toggle_btn}</span>'
+                f'  </label>'
                 f'  <span class="stat-value {a_class}" style="font-size:12px">${a_total:+,.2f}</span>'
                 f'</div>'
             )
@@ -181,26 +185,6 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
             f'<span class="stat-value {b_class}">${b_total:+,.2f}</span>'
             f'</div>'
             f'<div class="broker-accts" id="broker-accts-{b}" style="display:none">{acct_rows}</div>'
-            f'</div>'
-        )
-
-    # Broker dropdown options (for the filter select)
-    broker_options_html = '<option value="ALL">All Brokers</option>'
-    for b in brokers:
-        broker_options_html += f'<option value="{b}">{b}</option>'
-
-    # Account options per broker (hidden divs, shown by JS)
-    account_selects_html = ""
-    for b in brokers:
-        accts = broker_accounts[b]
-        opts = '<option value="ALL">All Accounts</option>'
-        for a in accts:
-            # Per-account total P/L for label
-            a_total = sum(r.closed_pl for r in records if r.broker == b and r.account == a)
-            opts += f'<option value="{a}">#{_mask_acct(a)} (${a_total:+,.2f})</option>'
-        account_selects_html += (
-            f'<div id="acct-group-{b}" class="acct-group" style="display:none">'
-            f'<select class="acct-select" id="acct-{b}" onchange="onAccountChange(\'{b}\', this.value)">{opts}</select>'
             f'</div>'
         )
 
@@ -245,6 +229,10 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
   .broker-accts{{background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px;padding:2px 0}}
   .acct-row{{display:flex;justify-content:space-between;align-items:center;padding:4px 8px}}
   .acct-row:hover{{background:rgba(255,255,255,.04);border-radius:4px}}
+  .acct-label{{display:flex;align-items:center;flex:1;cursor:pointer;gap:6px;min-width:0}}
+  .acct-cb{{accent-color:#22c55e;cursor:pointer;flex-shrink:0}}
+  .filter-btn{{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px;cursor:pointer}}
+  .filter-btn:hover{{border-color:#22c55e;color:#22c55e}}
   .acct-dw-toggle{{margin-left:5px;font-size:11px;color:var(--muted);cursor:pointer;user-select:none;vertical-align:middle}}
   .acct-dw-toggle:hover{{color:var(--text)}}
   .acct-dw-panel{{background:rgba(0,0,0,.25);border-radius:5px;margin:0 8px 4px 24px;padding:4px 8px}}
@@ -373,10 +361,13 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
 
     <div class="card">
       <div class="card-title">Filter</div>
-      <select class="filter-select" id="brokerSelect" onchange="onBrokerChange(this.value)">
-        {broker_options_html}
-      </select>
-      {account_selects_html}
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+        Check accounts in the Brokers list above to show/hide them.
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="filter-btn" onclick="selectAllAccts(true)">Select All</button>
+        <button class="filter-btn" onclick="selectAllAccts(false)">None</button>
+      </div>
     </div>
 
     <div class="card">
@@ -486,9 +477,50 @@ function maskAcct(a) {{
   return a.length <= 4 ? a : '****' + a.slice(-4);
 }}
 
-let activeBroker  = 'ALL';
-let activeAccount = 'ALL';
-let viewMode      = 'pl';   // 'pl' or 'dw'
+let selectedAccounts = new Set();   // keys: "broker|account"
+let viewMode         = 'pl';        // 'pl' or 'dw'
+
+// ── Account checkbox selection ──────────────────────────────────────────────
+function acctKey(broker, account) {{ return broker + '|' + account; }}
+
+function loadSelection() {{
+  const saved = localStorage.getItem('selectedAccounts');
+  if (saved) {{
+    try {{ selectedAccounts = new Set(JSON.parse(saved)); }} catch(e) {{ selectedAccounts = new Set(); }}
+  }} else {{
+    // Default: all accounts checked
+    document.querySelectorAll('.acct-cb').forEach(cb => {{
+      selectedAccounts.add(acctKey(cb.dataset.broker, cb.dataset.account));
+    }});
+  }}
+  // Apply state to checkboxes
+  document.querySelectorAll('.acct-cb').forEach(cb => {{
+    cb.checked = selectedAccounts.has(acctKey(cb.dataset.broker, cb.dataset.account));
+  }});
+}}
+
+function saveSelection() {{
+  localStorage.setItem('selectedAccounts', JSON.stringify([...selectedAccounts]));
+}}
+
+function onAcctCheck(broker, account, checked) {{
+  const key = acctKey(broker, account);
+  if (checked) selectedAccounts.add(key);
+  else selectedAccounts.delete(key);
+  saveSelection();
+  updateCalendar();
+}}
+
+function selectAllAccts(checked) {{
+  document.querySelectorAll('.acct-cb').forEach(cb => {{
+    cb.checked = checked;
+    const key = acctKey(cb.dataset.broker, cb.dataset.account);
+    if (checked) selectedAccounts.add(key);
+    else selectedAccounts.delete(key);
+  }});
+  saveSelection();
+  updateCalendar();
+}}
 
 // ── View toggle (P/L ↔ Dep/Wd) ───────────────────────────────────────────────
 function toggleView() {{
@@ -603,30 +635,21 @@ function toggleBrokerAccounts(broker) {{
   }}
 }}
 
-// ── Broker dropdown ──────────────────────────────────────────────────────────
-function onBrokerChange(broker) {{
-  activeBroker  = broker;
-  activeAccount = 'ALL';
-
-  // Show/hide account selects
-  document.querySelectorAll('.acct-group').forEach(el => el.style.display = 'none');
-  if (broker !== 'ALL') {{
-    const grp = document.getElementById('acct-group-' + broker);
-    if (grp) {{
-      grp.style.display = 'block';
-      document.getElementById('acct-' + broker).value = 'ALL';
+// ── Calendar update — aggregates over only the checked accounts ─────────────
+function aggregateForDay(d) {{
+  let pl = 0, dep = 0, wd = 0, hasAny = false;
+  for (const [broker, binfo] of Object.entries(d.brokers || {{}})) {{
+    for (const [acct, ainfo] of Object.entries(binfo.accounts || {{}})) {{
+      if (!selectedAccounts.has(acctKey(broker, acct))) continue;
+      pl  += ainfo.pl  || 0;
+      dep += ainfo.dep || 0;
+      wd  += ainfo.wd  || 0;
+      hasAny = true;
     }}
   }}
-  updateCalendar();
+  return {{ pl: hasAny ? pl : null, dep, wd, hasAny }};
 }}
 
-function onAccountChange(broker, account) {{
-  activeBroker  = broker;
-  activeAccount = account;
-  updateCalendar();
-}}
-
-// ── Calendar update ──────────────────────────────────────────────────────────
 function updateCalendar() {{
   document.querySelectorAll('.day-cell[data-date]').forEach(cell => {{
     const iso = cell.dataset.date;
@@ -634,43 +657,26 @@ function updateCalendar() {{
     if (!d) return;
     const plEl = cell.querySelector('.day-pl');
 
+    const agg = aggregateForDay(d);
+
     if (viewMode === 'dw') {{
       // ── Dep/Wd mode ──────────────────────────────────────────────────────
-      let dep = 0, wd = 0;
-      if (activeBroker === 'ALL') {{
-        dep = d.dep || 0;  wd = d.wd || 0;
-      }} else if (activeAccount === 'ALL') {{
-        const b = d.brokers[activeBroker];
-        if (b) {{ dep = b.dep || 0; wd = b.wd || 0; }}
-      }} else {{
-        const b  = d.brokers[activeBroker];
-        const a  = b && b.accounts[activeAccount];
-        if (a) {{ dep = a.dep || 0; wd = a.wd || 0; }}
-      }}
+      const dep = agg.dep, wd = agg.wd;
       if (dep !== 0 || wd !== 0) {{
-        const net = dep + wd;   // dep>0=cost, wd<0=return
+        const net = dep + wd;
         plEl.textContent = (net > 0 ? '-$' : '+$') + Math.abs(net).toFixed(2);
         cell.className   = 'day-cell ' + (dep !== 0 && wd === 0 ? 'loss' : wd !== 0 && dep === 0 ? 'profit' : net > 0 ? 'loss' : 'profit');
       }} else {{
         plEl.textContent = '-';
         cell.className   = 'day-cell flat';
       }}
-
     }} else {{
       // ── P/L mode ─────────────────────────────────────────────────────────
-      let pl = null;
-      if (activeBroker === 'ALL') {{
-        pl = d.total;
-      }} else if (activeAccount === 'ALL') {{
-        pl = d.brokers[activeBroker] ? d.brokers[activeBroker].pl : null;
-      }} else {{
-        const ba = d.brokers[activeBroker];
-        pl = (ba && ba.accounts[activeAccount]) ? ba.accounts[activeAccount].pl : null;
-      }}
-      if (pl === null) {{
+      if (agg.pl === null) {{
         plEl.textContent = '-';
         cell.className   = 'day-cell flat';
       }} else {{
+        const pl = agg.pl;
         plEl.textContent = '$' + (pl >= 0 ? '+' : '') + pl.toFixed(2);
         cell.className   = 'day-cell ' + (pl > 0 ? 'profit' : pl < 0 ? 'loss' : 'flat');
       }}
@@ -703,9 +709,15 @@ function showTooltip(e, iso) {{
     html += '<div style="font-size:12px;color:' + nc + ';margin-bottom:6px">Net: ' + ns + '</div>';
   }}
 
+  // Only show brokers/accounts that are currently checked
   for (const [broker, binfo] of Object.entries(d.brokers)) {{
+    const visibleAccts = Object.entries(binfo.accounts).filter(([acct]) =>
+      selectedAccounts.has(acctKey(broker, acct))
+    );
+    if (visibleAccts.length === 0) continue;
+
+    const bpl = visibleAccts.reduce((s, [, a]) => s + (a.pl || 0), 0);
     const color = brokerColors[broker] || '#888';
-    const bpl   = binfo.pl;
     const bc    = bpl >= 0 ? 'green' : 'red';
     const bs    = bpl >= 0 ? '+' : '';
     html += '<div class="tooltip-broker">'
@@ -714,10 +726,10 @@ function showTooltip(e, iso) {{
       + '<strong>' + broker + '</strong></span>'
       + '<span class="' + bc + '">$' + bs + bpl.toFixed(2) + '</span></div>';
 
-    for (const [acct, ainfo] of Object.entries(binfo.accounts)) {{
+    for (const [acct, ainfo] of visibleAccts) {{
       const apl = ainfo.pl;
       const hasDW = (ainfo.dep && ainfo.dep !== 0) || (ainfo.wd && ainfo.wd !== 0);
-      if (apl === 0 && !hasDW) continue;  // skip fully empty accounts
+      if (apl === 0 && !hasDW) continue;
       const ac  = apl >= 0 ? 'green' : 'red';
       const as_ = apl >= 0 ? '+' : '';
       let acctLine = '';
@@ -754,6 +766,10 @@ document.addEventListener('click', e => {{
   if (!e.target.closest('.day-cell[data-date]'))
     closeTooltip();
 }});
+
+// ── Initialize from saved selection ─────────────────────────────────────────
+loadSelection();
+updateCalendar();
 </script>
 </body>
 </html>"""

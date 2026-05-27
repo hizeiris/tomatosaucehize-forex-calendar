@@ -151,7 +151,10 @@ def merge_frozen_with_email(frozen: list[DailyRecord],
     """
     Frozen records are authoritative (from MT5+CSV).
     Email records fill only dates NOT already in frozen.
+    Excluded accounts (rebate IB) are stripped from both sources.
     """
+    frozen        = _filter_excluded(frozen)
+    email_records = _filter_excluded(email_records)
     result = {(r.broker, r.account, r.date.isoformat()): r for r in frozen}
     for r in email_records:
         key = (r.broker, r.account, r.date.isoformat())
@@ -162,10 +165,24 @@ def merge_frozen_with_email(frozen: list[DailyRecord],
 
 # ── Deduplication ─────────────────────────────────────────────────────────────
 
+# Accounts to exclude from the calendar (IB rebate accounts, internal routing, etc.)
+EXCLUDED_ACCOUNTS = {"143041"}
+
+
+def _filter_excluded(records: list[DailyRecord]) -> list[DailyRecord]:
+    """Drop records belonging to EXCLUDED_ACCOUNTS."""
+    return [r for r in records if r.account not in EXCLUDED_ACCOUNTS]
+
+
 def deduplicate(mt5_records: list[DailyRecord],
                 csv_records: list[DailyRecord],
                 email_records: list[DailyRecord]) -> list[DailyRecord]:
     """Priority: MT5 > CSV > Email. MT5 borrows dep/wd from CSV when missing."""
+    # Strip excluded accounts (rebate IB routing) from every source up front
+    mt5_records   = _filter_excluded(mt5_records)
+    csv_records   = _filter_excluded(csv_records)
+    email_records = _filter_excluded(email_records)
+
     seen: dict[tuple, DailyRecord] = {}
 
     for r in email_records:
