@@ -340,7 +340,7 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
   <div class="header-btns">
     <button class="header-btn" id="viewToggle" onclick="toggleView()">💳 Dep/Wd</button>
     <a class="header-btn" href="charts.html">📊 Charts</a>
-    <a class="header-btn" href="https://github.com/hizeiris/tomatosaucehize-forex-calendar/actions/workflows/update-calendar.yml" target="_blank" title="Trigger workflow on GitHub (click Run workflow there)">🔄 Update</a>
+    <button class="header-btn" id="updateBtn" onclick="triggerUpdate()" title="Trigger GitHub Actions workflow directly">🔄 Update</button>
   </div>
   <span class="updated">Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}</span>
 </div>
@@ -502,6 +502,64 @@ function toggleView() {{
     btn.classList.remove('active');
   }}
   updateCalendar();
+}}
+
+// ── One-click trigger of GitHub Actions workflow ────────────────────────────
+async function triggerUpdate() {{
+  const btn = document.getElementById('updateBtn');
+  const REPO = 'hizeiris/tomatosaucehize-forex-calendar';
+  const WORKFLOW = 'update-calendar.yml';
+
+  // Get token from localStorage (or prompt user to set it once)
+  let token = localStorage.getItem('gh_pat');
+  if (!token) {{
+    token = prompt(
+      'One-time setup: Paste your GitHub Personal Access Token\\n\\n' +
+      'How to create one:\\n' +
+      '1. github.com/settings/tokens → Generate new token (classic)\\n' +
+      '2. Check the "workflow" scope only\\n' +
+      '3. Copy and paste here\\n\\n' +
+      'Token stays in YOUR browser only (localStorage).'
+    );
+    if (!token) return;
+    localStorage.setItem('gh_pat', token.trim());
+  }}
+
+  btn.textContent = '⏳ Triggering...';
+  btn.disabled = true;
+
+  try {{
+    const res = await fetch(`https://api.github.com/repos/${{REPO}}/actions/workflows/${{WORKFLOW}}/dispatches`, {{
+      method: 'POST',
+      headers: {{
+        'Accept':        'application/vnd.github+json',
+        'Authorization': `Bearer ${{token}}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+      }},
+      body: JSON.stringify({{ ref: 'main' }}),
+    }});
+
+    if (res.status === 204) {{
+      btn.textContent = '✅ Started! Wait ~30s';
+      setTimeout(() => {{ btn.textContent = '🔄 Update'; btn.disabled = false; }}, 4000);
+      // Auto-reload after 45s to show fresh calendar
+      setTimeout(() => location.reload(), 45000);
+    }} else if (res.status === 401) {{
+      localStorage.removeItem('gh_pat');
+      btn.textContent = '❌ Bad token';
+      alert('Invalid token. Clear and try again.');
+      setTimeout(() => {{ btn.textContent = '🔄 Update'; btn.disabled = false; }}, 3000);
+    }} else {{
+      const err = await res.text();
+      btn.textContent = '❌ Error';
+      alert(`GitHub API error ${{res.status}}: ${{err}}`);
+      setTimeout(() => {{ btn.textContent = '🔄 Update'; btn.disabled = false; }}, 3000);
+    }}
+  }} catch (e) {{
+    btn.textContent = '❌ Network';
+    alert('Network error: ' + e.message);
+    setTimeout(() => {{ btn.textContent = '🔄 Update'; btn.disabled = false; }}, 3000);
+  }}
 }}
 
 // ── Mobile sidebar toggle ────────────────────────────────────────────────────
