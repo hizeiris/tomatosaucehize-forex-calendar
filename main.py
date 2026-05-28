@@ -168,10 +168,31 @@ def merge_frozen_with_email(frozen: list[DailyRecord],
 # Accounts to exclude from the calendar (IB rebate accounts, internal routing, etc.)
 EXCLUDED_ACCOUNTS = {"143041"}
 
+# Hide small deposits below this threshold (typically broker rebates/cashback,
+# not real user deposits). P/L is preserved; only the deposit display is zeroed.
+MIN_DEPOSIT_DISPLAY = 49.0
+
 
 def _filter_excluded(records: list[DailyRecord]) -> list[DailyRecord]:
     """Drop records belonging to EXCLUDED_ACCOUNTS."""
     return [r for r in records if r.account not in EXCLUDED_ACCOUNTS]
+
+
+def _strip_small_deposits(records: list[DailyRecord]) -> list[DailyRecord]:
+    """Zero-out deposits below MIN_DEPOSIT_DISPLAY (rebates/cashback).
+    P/L is NOT touched — only the deposit display value is hidden."""
+    from dataclasses import replace as dc_replace
+    out = []
+    for r in records:
+        if 0 < r.deposit < MIN_DEPOSIT_DISPLAY:
+            out.append(dc_replace(
+                r,
+                deposit=0.0,
+                deposit_withdrawal=round(r.withdrawal, 2),
+            ))
+        else:
+            out.append(r)
+    return out
 
 
 def deduplicate(mt5_records: list[DailyRecord],
@@ -433,13 +454,19 @@ def main(refresh: bool = False, freeze: bool = False, today_mode: bool = False):
         print("\nNo records found.")
         sys.exit(1)
 
+    # Hide small deposits (rebates/cashback) from display
+    display_records = _strip_small_deposits(all_records)
+    hidden_n = sum(1 for r in all_records if 0 < r.deposit < MIN_DEPOSIT_DISPLAY)
+    if hidden_n:
+        print(f"  Hidden {hidden_n} small deposit(s) below ${MIN_DEPOSIT_DISPLAY}")
+
     # ── Generate output ───────────────────────────────────────────────────────
     OUTPUT_FILE.parent.mkdir(exist_ok=True)
-    print(f"\nGenerating calendar with {len(all_records)} records...")
-    generate_calendar_html(all_records, str(OUTPUT_FILE), account_cfg=cfg)
+    print(f"\nGenerating calendar with {len(display_records)} records...")
+    generate_calendar_html(display_records, str(OUTPUT_FILE), account_cfg=cfg)
 
     CHARTS_FILE = OUTPUT_FILE.parent / "charts.html"
-    generate_charts_html(all_records, str(CHARTS_FILE))
+    generate_charts_html(display_records, str(CHARTS_FILE))
 
     # ── Sync docs/ (GitHub Pages) ─────────────────────────────────────────────
     import shutil
