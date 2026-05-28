@@ -233,6 +233,12 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
   .acct-cb{{accent-color:#22c55e;cursor:pointer;flex-shrink:0}}
   .filter-btn{{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px;cursor:pointer}}
   .filter-btn:hover{{border-color:#22c55e;color:#22c55e}}
+  .date-range{{display:flex;flex-direction:column;gap:6px}}
+  .date-field{{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted)}}
+  .date-field input{{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px;outline:none;color-scheme:dark}}
+  .date-field input:focus{{border-color:#22c55e}}
+  .month-block.hidden{{display:none}}
+  .day-cell.out-of-range{{opacity:0.2;pointer-events:none}}
   .acct-dw-toggle{{margin-left:5px;font-size:11px;color:var(--muted);cursor:pointer;user-select:none;vertical-align:middle}}
   .acct-dw-toggle:hover{{color:var(--text)}}
   .acct-dw-panel{{background:rgba(0,0,0,.25);border-radius:5px;margin:0 8px 4px 24px;padding:4px 8px}}
@@ -360,6 +366,26 @@ def generate_calendar_html(records: List[DailyRecord], output_path: str = "outpu
     </div>
 
     <div class="card">
+      <div class="card-title">Date Range</div>
+      <div class="date-range">
+        <label class="date-field">
+          <span>From</span>
+          <input type="date" id="dateFrom" onchange="onDateChange()">
+        </label>
+        <label class="date-field">
+          <span>To</span>
+          <input type="date" id="dateTo" onchange="onDateChange()">
+        </label>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <button class="filter-btn" onclick="setDateRange(7)">7d</button>
+        <button class="filter-btn" onclick="setDateRange(30)">30d</button>
+        <button class="filter-btn" onclick="setDateRange(90)">90d</button>
+        <button class="filter-btn" onclick="setDateRange(0)">All</button>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-title">Filter</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
         Check accounts in the Brokers list above to show/hide them.
@@ -479,6 +505,56 @@ function maskAcct(a) {{
 
 let selectedAccounts = new Set();   // keys: "broker|account"
 let viewMode         = 'pl';        // 'pl' or 'dw'
+let dateFrom         = '';          // ISO date 'YYYY-MM-DD' or ''
+let dateTo           = '';          // ISO date 'YYYY-MM-DD' or ''
+
+// ── Date range filter ───────────────────────────────────────────────────────
+function inDateRange(iso) {{
+  if (dateFrom && iso < dateFrom) return false;
+  if (dateTo   && iso > dateTo)   return false;
+  return true;
+}}
+
+function loadDateRange() {{
+  const saved = localStorage.getItem('dateRange');
+  if (saved) {{
+    try {{
+      const obj = JSON.parse(saved);
+      dateFrom = obj.from || '';
+      dateTo   = obj.to   || '';
+    }} catch(e) {{ dateFrom = ''; dateTo = ''; }}
+  }}
+  document.getElementById('dateFrom').value = dateFrom;
+  document.getElementById('dateTo').value   = dateTo;
+}}
+
+function saveDateRange() {{
+  localStorage.setItem('dateRange', JSON.stringify({{ from: dateFrom, to: dateTo }}));
+}}
+
+function onDateChange() {{
+  dateFrom = document.getElementById('dateFrom').value;
+  dateTo   = document.getElementById('dateTo').value;
+  saveDateRange();
+  updateCalendar();
+}}
+
+function setDateRange(days) {{
+  if (days === 0) {{
+    dateFrom = ''; dateTo = '';
+  }} else {{
+    const today = new Date();
+    const from  = new Date(today);
+    from.setDate(today.getDate() - days + 1);
+    const fmt = d => d.toISOString().slice(0,10);
+    dateFrom = fmt(from);
+    dateTo   = fmt(today);
+  }}
+  document.getElementById('dateFrom').value = dateFrom;
+  document.getElementById('dateTo').value   = dateTo;
+  saveDateRange();
+  updateCalendar();
+}}
 
 // ── Account checkbox selection ──────────────────────────────────────────────
 function acctKey(broker, account) {{ return broker + '|' + account; }}
@@ -651,13 +727,17 @@ function aggregateForDay(d) {{
 }}
 
 function updateCalendar() {{
+  // Track which months have at least one visible (in-range) day with data
+  const visibleMonths = new Set();
+
   document.querySelectorAll('.day-cell[data-date]').forEach(cell => {{
     const iso = cell.dataset.date;
     const d   = daysData[iso];
     if (!d) return;
     const plEl = cell.querySelector('.day-pl');
 
-    const agg = aggregateForDay(d);
+    const inRange = inDateRange(iso);
+    const agg     = aggregateForDay(d);
 
     if (viewMode === 'dw') {{
       // ── Dep/Wd mode ──────────────────────────────────────────────────────
@@ -681,7 +761,68 @@ function updateCalendar() {{
         cell.className   = 'day-cell ' + (pl > 0 ? 'profit' : pl < 0 ? 'loss' : 'flat');
       }}
     }}
+
+    // Apply date range: dim out-of-range cells
+    if (!inRange) {{
+      cell.classList.add('out-of-range');
+    }} else if (agg.hasAny || (agg.dep !== 0 || agg.wd !== 0)) {{
+      visibleMonths.add(iso.slice(0,7));
+    }}
   }});
+
+  // Hide month blocks with no visible in-range data; recompute summaries
+  document.querySelectorAll('.month-block').forEach(blk => {{
+    const mKey = blk.dataset.month;
+    if (!mKey) return;
+
+    // If no date filter set, show all months
+    const noFilter = !dateFrom && !dateTo;
+    let monthHasInRange = noFilter;
+    if (!noFilter) {{
+      // Check if any iso date for this month falls in range
+      for (const iso of Object.keys(daysData)) {{
+        if (iso.startsWith(mKey) && inDateRange(iso)) {{
+          monthHasInRange = true;
+          break;
+        }}
+      }}
+    }}
+    blk.classList.toggle('hidden', !monthHasInRange);
+    if (monthHasInRange) recomputeMonthSummary(blk, mKey);
+  }});
+}}
+
+function recomputeMonthSummary(blk, mKey) {{
+  let total = 0, dep = 0, wd = 0, wins = 0, losses = 0;
+  for (const [iso, d] of Object.entries(daysData)) {{
+    if (!iso.startsWith(mKey)) continue;
+    if (!inDateRange(iso)) continue;
+    const agg = aggregateForDay(d);
+    if (agg.pl !== null) {{
+      total += agg.pl;
+      if (agg.pl > 0) wins++;
+      else if (agg.pl < 0) losses++;
+    }}
+    dep += agg.dep;
+    wd  += agg.wd;
+  }}
+  const summary = blk.querySelector('.month-summary');
+  if (!summary) return;
+  const totalCls = total >= 0 ? 'green' : 'red';
+  const totalSign = total >= 0 ? '+' : '';
+  let html = ''
+    + `<span class="month-stat">Total: <strong class="${{totalCls}}">$${{totalSign}}${{total.toLocaleString('en',{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</strong></span>`
+    + `<span class="month-stat">Wins: <strong class="green">${{wins}}</strong></span>`
+    + `<span class="month-stat">Losses: <strong class="red">${{losses}}</strong></span>`;
+  if (dep !== 0) html += `<span class="month-stat">Dep: <strong style="color:#ef4444">-$${{dep.toFixed(2)}}</strong></span>`;
+  if (wd  !== 0) html += `<span class="month-stat">Wd: <strong style="color:#60a5fa">+$${{Math.abs(wd).toFixed(2)}}</strong></span>`;
+  if (dep !== 0 && wd !== 0) {{
+    const net = dep + wd;
+    const nc  = net > 0 ? '#ef4444' : '#60a5fa';
+    const ns  = net > 0 ? '-$' + net.toFixed(2) : '+$' + Math.abs(net).toFixed(2);
+    html += `<span class="month-stat">Net: <strong style="color:${{nc}}">${{ns}}</strong></span>`;
+  }}
+  summary.innerHTML = html;
 }}
 
 // ── Tooltip ──────────────────────────────────────────────────────────────────
@@ -768,6 +909,7 @@ document.addEventListener('click', e => {{
 }});
 
 // ── Initialize from saved selection ─────────────────────────────────────────
+loadDateRange();
 loadSelection();
 updateCalendar();
 </script>

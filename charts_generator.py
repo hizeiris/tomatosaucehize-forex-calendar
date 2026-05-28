@@ -92,8 +92,10 @@ def generate_charts_html(records: List[DailyRecord], output_path: str = "output/
   .updated{{font-size:12px;color:var(--muted)}}
   .controls{{display:flex;gap:12px;padding:20px 32px;flex-wrap:wrap;align-items:center}}
   .ctrl-label{{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}}
-  .ctrl-select{{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px;cursor:pointer;outline:none;min-width:180px}}
+  .ctrl-select{{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px;cursor:pointer;outline:none;min-width:140px;color-scheme:dark}}
   .ctrl-select:focus{{border-color:#22c55e}}
+  .quick-btn{{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:7px 10px;font-size:11px;cursor:pointer;height:38px}}
+  .quick-btn:hover{{border-color:#22c55e;color:#22c55e}}
   .ctrl-group{{display:flex;flex-direction:column;gap:6px}}
   .chart-container{{margin:0 32px 32px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;position:relative}}
   .chart-title{{font-size:15px;font-weight:700;margin-bottom:4px}}
@@ -136,6 +138,23 @@ def generate_charts_html(records: List[DailyRecord], output_path: str = "output/
       {filter_options}
     </select>
   </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">From</span>
+    <input type="date" class="ctrl-select" id="dateFrom" onchange="onDateChange()">
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">To</span>
+    <input type="date" class="ctrl-select" id="dateTo" onchange="onDateChange()">
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">Quick</span>
+    <div style="display:flex;gap:4px">
+      <button class="quick-btn" onclick="setDateRange(7)">7d</button>
+      <button class="quick-btn" onclick="setDateRange(30)">30d</button>
+      <button class="quick-btn" onclick="setDateRange(90)">90d</button>
+      <button class="quick-btn" onclick="setDateRange(0)">All</button>
+    </div>
+  </div>
 </div>
 
 <div class="chart-container">
@@ -155,6 +174,56 @@ const brokerColors   = {json.dumps(BROKER_COLORS)};
 let chartInstance = null;
 let currentType   = 'equity';
 let currentFilter = 'ALL';
+let dateFrom      = '';
+let dateTo        = '';
+
+// ── Date range ──────────────────────────────────────────────────────────────
+function inDateRange(iso) {{
+  if (dateFrom && iso < dateFrom) return false;
+  if (dateTo   && iso > dateTo)   return false;
+  return true;
+}}
+
+function loadDateRange() {{
+  const saved = localStorage.getItem('dateRange');
+  if (saved) {{
+    try {{
+      const obj = JSON.parse(saved);
+      dateFrom = obj.from || '';
+      dateTo   = obj.to   || '';
+    }} catch(e) {{ dateFrom = ''; dateTo = ''; }}
+  }}
+  document.getElementById('dateFrom').value = dateFrom;
+  document.getElementById('dateTo').value   = dateTo;
+}}
+
+function saveDateRange() {{
+  localStorage.setItem('dateRange', JSON.stringify({{ from: dateFrom, to: dateTo }}));
+}}
+
+function onDateChange() {{
+  dateFrom = document.getElementById('dateFrom').value;
+  dateTo   = document.getElementById('dateTo').value;
+  saveDateRange();
+  renderChart();
+}}
+
+function setDateRange(days) {{
+  if (days === 0) {{
+    dateFrom = ''; dateTo = '';
+  }} else {{
+    const today = new Date();
+    const from  = new Date(today);
+    from.setDate(today.getDate() - days + 1);
+    const fmt = d => d.toISOString().slice(0,10);
+    dateFrom = fmt(from);
+    dateTo   = fmt(today);
+  }}
+  document.getElementById('dateFrom').value = dateFrom;
+  document.getElementById('dateTo').value   = dateTo;
+  saveDateRange();
+  renderChart();
+}}
 
 // ── Data helpers ──────────────────────────────────────────────────────────────
 function getFilterLabel(f) {{
@@ -188,7 +257,7 @@ function getPlForDate(iso, filter) {{
 }}
 
 function getAllDates() {{
-  return Object.keys(daysData).sort();
+  return Object.keys(daysData).filter(iso => inDateRange(iso)).sort();
 }}
 
 // ── Equity curve ──────────────────────────────────────────────────────────────
@@ -394,6 +463,7 @@ function onFilterChange(val) {{
 }}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+loadDateRange();
 renderChart();
 </script>
 </body>

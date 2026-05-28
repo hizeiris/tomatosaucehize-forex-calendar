@@ -43,6 +43,12 @@
   .acct-cb{accent-color:#22c55e;cursor:pointer;flex-shrink:0}
   .filter-btn{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px;cursor:pointer}
   .filter-btn:hover{border-color:#22c55e;color:#22c55e}
+  .date-range{display:flex;flex-direction:column;gap:6px}
+  .date-field{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted)}
+  .date-field input{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px;outline:none;color-scheme:dark}
+  .date-field input:focus{border-color:#22c55e}
+  .month-block.hidden{display:none}
+  .day-cell.out-of-range{opacity:0.2;pointer-events:none}
   .acct-dw-toggle{margin-left:5px;font-size:11px;color:var(--muted);cursor:pointer;user-select:none;vertical-align:middle}
   .acct-dw-toggle:hover{color:var(--text)}
   .acct-dw-panel{background:rgba(0,0,0,.25);border-radius:5px;margin:0 8px 4px 24px;padding:4px 8px}
@@ -140,7 +146,7 @@
     <a class="header-btn" href="charts.html">📊 Charts</a>
     <button class="header-btn" id="updateBtn" onclick="triggerUpdate()" title="Trigger GitHub Actions workflow directly">🔄 Update</button>
   </div>
-  <span class="updated">Updated: 2026-05-28 12:06</span>
+  <span class="updated">Updated: 2026-05-28 12:20</span>
 </div>
 
 <button class="mobile-toggle" id="sidebarToggle" onclick="toggleSidebar()">
@@ -167,6 +173,26 @@
     <div class="card">
       <div class="card-title">Brokers</div>
       <div class="broker-group"><div class="stat-row broker-toggle" onclick="toggleBrokerAccounts('Hantec')" style="cursor:pointer"><span class="stat-label"><span class="broker-dot" style="background:#7c3aed"></span>Hantec<span class="toggle-arrow" id="arrow-Hantec" style="margin-left:6px;font-size:10px;color:var(--muted)">▶</span></span><span class="stat-value red">$-428.91</span></div><div class="broker-accts" id="broker-accts-Hantec" style="display:none"><div class="acct-row">  <label class="acct-label" title="Show/hide on calendar">    <input type="checkbox" class="acct-cb" data-broker="Hantec" data-account="50342137"            onchange="onAcctCheck('Hantec','50342137',this.checked)" checked>    <span class="stat-label" style="font-size:11px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:4px;vertical-align:middle" title="Active — last Dep/Wd: 2026-05-06 (22d ago)"></span>#****2137<span class="acct-dw-toggle" id="dw-arrow-Hantec-50342137" onclick="event.stopPropagation();toggleAcctDW('Hantec','50342137')" title="Dep / Wd">⊕</span></span>  </label>  <span class="stat-value red" style="font-size:12px">$-428.91</span></div><div class="acct-dw-panel" id="dw-panel-Hantec-50342137" style="display:none"><div class="acct-dw-row"><span style="color:var(--muted)">Dep</span><span style="color:#ef4444">-$477.34</span></div><div class="acct-dw-row"><span style="color:var(--muted)">Wd</span><span style="color:#60a5fa">+$48.49</span></div><div class="acct-dw-row" style="border-top:1px solid var(--border);margin-top:2px;padding-top:3px"><span style="color:var(--muted)">Net</span><span style="color:#ef4444">-$428.85</span></div></div></div></div><div class="broker-group"><div class="stat-row broker-toggle" onclick="toggleBrokerAccounts('Vantage')" style="cursor:pointer"><span class="stat-label"><span class="broker-dot" style="background:#2563eb"></span>Vantage<span class="toggle-arrow" id="arrow-Vantage" style="margin-left:6px;font-size:10px;color:var(--muted)">▶</span></span><span class="stat-value red">$-15,282.14</span></div><div class="broker-accts" id="broker-accts-Vantage" style="display:none"><div class="acct-row">  <label class="acct-label" title="Show/hide on calendar">    <input type="checkbox" class="acct-cb" data-broker="Vantage" data-account="11501530"            onchange="onAcctCheck('Vantage','11501530',this.checked)" checked>    <span class="stat-label" style="font-size:11px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef4444;margin-right:4px;vertical-align:middle" title="Inactive — last Dep/Wd: 2025-10-01 (239d ago)"></span>#****1530<span class="acct-dw-toggle" id="dw-arrow-Vantage-11501530" onclick="event.stopPropagation();toggleAcctDW('Vantage','11501530')" title="Dep / Wd">⊕</span></span>  </label>  <span class="stat-value green" style="font-size:12px">$+4,690.85</span></div><div class="acct-dw-panel" id="dw-panel-Vantage-11501530" style="display:none"><div class="acct-dw-row"><span style="color:var(--muted)">Dep</span><span style="color:#ef4444">-$1,670.45</span></div><div class="acct-dw-row"><span style="color:var(--muted)">Wd</span><span style="color:#60a5fa">+$6,361.30</span></div><div class="acct-dw-row" style="border-top:1px solid var(--border);margin-top:2px;padding-top:3px"><span style="color:var(--muted)">Net</span><span style="color:#60a5fa">+$4,690.85</span></div></div><div class="acct-row">  <label class="acct-label" title="Show/hide on calendar">    <input type="checkbox" class="acct-cb" data-broker="Vantage" data-account="1447393"            onchange="onAcctCheck('Vantage','1447393',this.checked)" checked>    <span class="stat-label" style="font-size:11px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef4444;margin-right:4px;vertical-align:middle" title="Inactive — last Dep/Wd: 2025-10-21 (219d ago)"></span>#****7393<span class="acct-dw-toggle" id="dw-arrow-Vantage-1447393" onclick="event.stopPropagation();toggleAcctDW('Vantage','1447393')" title="Dep / Wd">⊕</span></span>  </label>  <span class="stat-value green" style="font-size:12px">$+9,136.98</span></div><div class="acct-dw-panel" id="dw-panel-Vantage-1447393" style="display:none"><div class="acct-dw-row"><span style="color:var(--muted)">Dep</span><span style="color:#ef4444">-$26,076.33</span></div><div class="acct-dw-row"><span style="color:var(--muted)">Wd</span><span style="color:#60a5fa">+$35,388.20</span></div><div class="acct-dw-row" style="border-top:1px solid var(--border);margin-top:2px;padding-top:3px"><span style="color:var(--muted)">Net</span><span style="color:#60a5fa">+$9,311.87</span></div></div><div class="acct-row">  <label class="acct-label" title="Show/hide on calendar">    <input type="checkbox" class="acct-cb" data-broker="Vantage" data-account="19660504"            onchange="onAcctCheck('Vantage','19660504',this.checked)" checked>    <span class="stat-label" style="font-size:11px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef4444;margin-right:4px;vertical-align:middle" title="Inactive — last Dep/Wd: 2025-11-12 (197d ago)"></span>#****0504<span class="acct-dw-toggle" id="dw-arrow-Vantage-19660504" onclick="event.stopPropagation();toggleAcctDW('Vantage','19660504')" title="Dep / Wd">⊕</span></span>  </label>  <span class="stat-value red" style="font-size:12px">$-119.90</span></div><div class="acct-dw-panel" id="dw-panel-Vantage-19660504" style="display:none"><div class="acct-dw-row"><span style="color:var(--muted)">Dep</span><span style="color:#ef4444">-$119.92</span></div></div><div class="acct-row">  <label class="acct-label" title="Show/hide on calendar">    <input type="checkbox" class="acct-cb" data-broker="Vantage" data-account="24664300"            onchange="onAcctCheck('Vantage','24664300',this.checked)" checked>    <span class="stat-label" style="font-size:11px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:4px;vertical-align:middle" title="Active — last Dep/Wd: 2026-04-20 (38d ago)"></span>#****4300<span class="acct-dw-toggle" id="dw-arrow-Vantage-24664300" onclick="event.stopPropagation();toggleAcctDW('Vantage','24664300')" title="Dep / Wd">⊕</span></span>  </label>  <span class="stat-value red" style="font-size:12px">$-372.03</span></div><div class="acct-dw-panel" id="dw-panel-Vantage-24664300" style="display:none"><div class="acct-dw-row"><span style="color:var(--muted)">Dep</span><span style="color:#ef4444">-$2,695.18</span></div><div class="acct-dw-row"><span style="color:var(--muted)">Wd</span><span style="color:#60a5fa">+$2,317.90</span></div><div class="acct-dw-row" style="border-top:1px solid var(--border);margin-top:2px;padding-top:3px"><span style="color:var(--muted)">Net</span><span style="color:#ef4444">-$377.28</span></div></div><div class="acct-row">  <label class="acct-label" title="Show/hide on calendar">    <input type="checkbox" class="acct-cb" data-broker="Vantage" data-account="28144020"            onchange="onAcctCheck('Vantage','28144020',this.checked)" checked>    <span class="stat-label" style="font-size:11px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:4px;vertical-align:middle" title="Active — last Dep/Wd: 2026-05-27 (1d ago)"></span>#****4020<span class="acct-dw-toggle" id="dw-arrow-Vantage-28144020" onclick="event.stopPropagation();toggleAcctDW('Vantage','28144020')" title="Dep / Wd">⊕</span></span>  </label>  <span class="stat-value green" style="font-size:12px">$+1,099.57</span></div><div class="acct-dw-panel" id="dw-panel-Vantage-28144020" style="display:none"><div class="acct-dw-row"><span style="color:var(--muted)">Dep</span><span style="color:#ef4444">-$305.84</span></div><div class="acct-dw-row"><span style="color:var(--muted)">Wd</span><span style="color:#60a5fa">+$197.62</span></div><div class="acct-dw-row" style="border-top:1px solid var(--border);margin-top:2px;padding-top:3px"><span style="color:var(--muted)">Net</span><span style="color:#ef4444">-$108.22</span></div></div><div class="acct-row">  <label class="acct-label" title="Show/hide on calendar">    <input type="checkbox" class="acct-cb" data-broker="Vantage" data-account="51854377"            onchange="onAcctCheck('Vantage','51854377',this.checked)" checked>    <span class="stat-label" style="font-size:11px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef4444;margin-right:4px;vertical-align:middle" title="Inactive — last Dep/Wd: 2026-03-19 (70d ago)"></span>#****4377<span class="acct-dw-toggle" id="dw-arrow-Vantage-51854377" onclick="event.stopPropagation();toggleAcctDW('Vantage','51854377')" title="Dep / Wd">⊕</span></span>  </label>  <span class="stat-value red" style="font-size:12px">$-29,738.86</span></div><div class="acct-dw-panel" id="dw-panel-Vantage-51854377" style="display:none"><div class="acct-dw-row"><span style="color:var(--muted)">Dep</span><span style="color:#ef4444">-$30,639.10</span></div><div class="acct-dw-row"><span style="color:var(--muted)">Wd</span><span style="color:#60a5fa">+$900.08</span></div><div class="acct-dw-row" style="border-top:1px solid var(--border);margin-top:2px;padding-top:3px"><span style="color:var(--muted)">Net</span><span style="color:#ef4444">-$29,739.02</span></div></div><div class="acct-row">  <label class="acct-label" title="Show/hide on calendar">    <input type="checkbox" class="acct-cb" data-broker="Vantage" data-account="51854494"            onchange="onAcctCheck('Vantage','51854494',this.checked)" checked>    <span class="stat-label" style="font-size:11px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef4444;margin-right:4px;vertical-align:middle" title="Inactive — last Dep/Wd: 2025-04-04 (419d ago)"></span>#****4494<span class="acct-dw-toggle" id="dw-arrow-Vantage-51854494" onclick="event.stopPropagation();toggleAcctDW('Vantage','51854494')" title="Dep / Wd">⊕</span></span>  </label>  <span class="stat-value green" style="font-size:12px">$+21.25</span></div><div class="acct-dw-panel" id="dw-panel-Vantage-51854494" style="display:none"><div class="acct-dw-row"><span style="color:var(--muted)">Dep</span><span style="color:#ef4444">-$1,069.94</span></div><div class="acct-dw-row"><span style="color:var(--muted)">Wd</span><span style="color:#60a5fa">+$1,109.94</span></div><div class="acct-dw-row" style="border-top:1px solid var(--border);margin-top:2px;padding-top:3px"><span style="color:var(--muted)">Net</span><span style="color:#60a5fa">+$40.00</span></div></div></div></div><div class="broker-group"><div class="stat-row broker-toggle" onclick="toggleBrokerAccounts('XM')" style="cursor:pointer"><span class="stat-label"><span class="broker-dot" style="background:#d97706"></span>XM<span class="toggle-arrow" id="arrow-XM" style="margin-left:6px;font-size:10px;color:var(--muted)">▶</span></span><span class="stat-value red">$-600.06</span></div><div class="broker-accts" id="broker-accts-XM" style="display:none"><div class="acct-row">  <label class="acct-label" title="Show/hide on calendar">    <input type="checkbox" class="acct-cb" data-broker="XM" data-account="352095858"            onchange="onAcctCheck('XM','352095858',this.checked)" checked>    <span class="stat-label" style="font-size:11px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef4444;margin-right:4px;vertical-align:middle" title="Inactive — last Dep/Wd: 2026-03-23 (66d ago)"></span>#****5858<span class="acct-dw-toggle" id="dw-arrow-XM-352095858" onclick="event.stopPropagation();toggleAcctDW('XM','352095858')" title="Dep / Wd">⊕</span></span>  </label>  <span class="stat-value red" style="font-size:12px">$-600.06</span></div><div class="acct-dw-panel" id="dw-panel-XM-352095858" style="display:none"><div class="acct-dw-row"><span style="color:var(--muted)">Dep</span><span style="color:#ef4444">-$610.54</span></div><div class="acct-dw-row"><span style="color:var(--muted)">Wd</span><span style="color:#60a5fa">+$10.48</span></div><div class="acct-dw-row" style="border-top:1px solid var(--border);margin-top:2px;padding-top:3px"><span style="color:var(--muted)">Net</span><span style="color:#ef4444">-$600.06</span></div></div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Date Range</div>
+      <div class="date-range">
+        <label class="date-field">
+          <span>From</span>
+          <input type="date" id="dateFrom" onchange="onDateChange()">
+        </label>
+        <label class="date-field">
+          <span>To</span>
+          <input type="date" id="dateTo" onchange="onDateChange()">
+        </label>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <button class="filter-btn" onclick="setDateRange(7)">7d</button>
+        <button class="filter-btn" onclick="setDateRange(30)">30d</button>
+        <button class="filter-btn" onclick="setDateRange(90)">90d</button>
+        <button class="filter-btn" onclick="setDateRange(0)">All</button>
+      </div>
     </div>
 
     <div class="card">
@@ -4499,6 +4525,56 @@ function maskAcct(a) {
 
 let selectedAccounts = new Set();   // keys: "broker|account"
 let viewMode         = 'pl';        // 'pl' or 'dw'
+let dateFrom         = '';          // ISO date 'YYYY-MM-DD' or ''
+let dateTo           = '';          // ISO date 'YYYY-MM-DD' or ''
+
+// ── Date range filter ───────────────────────────────────────────────────────
+function inDateRange(iso) {
+  if (dateFrom && iso < dateFrom) return false;
+  if (dateTo   && iso > dateTo)   return false;
+  return true;
+}
+
+function loadDateRange() {
+  const saved = localStorage.getItem('dateRange');
+  if (saved) {
+    try {
+      const obj = JSON.parse(saved);
+      dateFrom = obj.from || '';
+      dateTo   = obj.to   || '';
+    } catch(e) { dateFrom = ''; dateTo = ''; }
+  }
+  document.getElementById('dateFrom').value = dateFrom;
+  document.getElementById('dateTo').value   = dateTo;
+}
+
+function saveDateRange() {
+  localStorage.setItem('dateRange', JSON.stringify({ from: dateFrom, to: dateTo }));
+}
+
+function onDateChange() {
+  dateFrom = document.getElementById('dateFrom').value;
+  dateTo   = document.getElementById('dateTo').value;
+  saveDateRange();
+  updateCalendar();
+}
+
+function setDateRange(days) {
+  if (days === 0) {
+    dateFrom = ''; dateTo = '';
+  } else {
+    const today = new Date();
+    const from  = new Date(today);
+    from.setDate(today.getDate() - days + 1);
+    const fmt = d => d.toISOString().slice(0,10);
+    dateFrom = fmt(from);
+    dateTo   = fmt(today);
+  }
+  document.getElementById('dateFrom').value = dateFrom;
+  document.getElementById('dateTo').value   = dateTo;
+  saveDateRange();
+  updateCalendar();
+}
 
 // ── Account checkbox selection ──────────────────────────────────────────────
 function acctKey(broker, account) { return broker + '|' + account; }
@@ -4671,13 +4747,17 @@ function aggregateForDay(d) {
 }
 
 function updateCalendar() {
+  // Track which months have at least one visible (in-range) day with data
+  const visibleMonths = new Set();
+
   document.querySelectorAll('.day-cell[data-date]').forEach(cell => {
     const iso = cell.dataset.date;
     const d   = daysData[iso];
     if (!d) return;
     const plEl = cell.querySelector('.day-pl');
 
-    const agg = aggregateForDay(d);
+    const inRange = inDateRange(iso);
+    const agg     = aggregateForDay(d);
 
     if (viewMode === 'dw') {
       // ── Dep/Wd mode ──────────────────────────────────────────────────────
@@ -4701,7 +4781,68 @@ function updateCalendar() {
         cell.className   = 'day-cell ' + (pl > 0 ? 'profit' : pl < 0 ? 'loss' : 'flat');
       }
     }
+
+    // Apply date range: dim out-of-range cells
+    if (!inRange) {
+      cell.classList.add('out-of-range');
+    } else if (agg.hasAny || (agg.dep !== 0 || agg.wd !== 0)) {
+      visibleMonths.add(iso.slice(0,7));
+    }
   });
+
+  // Hide month blocks with no visible in-range data; recompute summaries
+  document.querySelectorAll('.month-block').forEach(blk => {
+    const mKey = blk.dataset.month;
+    if (!mKey) return;
+
+    // If no date filter set, show all months
+    const noFilter = !dateFrom && !dateTo;
+    let monthHasInRange = noFilter;
+    if (!noFilter) {
+      // Check if any iso date for this month falls in range
+      for (const iso of Object.keys(daysData)) {
+        if (iso.startsWith(mKey) && inDateRange(iso)) {
+          monthHasInRange = true;
+          break;
+        }
+      }
+    }
+    blk.classList.toggle('hidden', !monthHasInRange);
+    if (monthHasInRange) recomputeMonthSummary(blk, mKey);
+  });
+}
+
+function recomputeMonthSummary(blk, mKey) {
+  let total = 0, dep = 0, wd = 0, wins = 0, losses = 0;
+  for (const [iso, d] of Object.entries(daysData)) {
+    if (!iso.startsWith(mKey)) continue;
+    if (!inDateRange(iso)) continue;
+    const agg = aggregateForDay(d);
+    if (agg.pl !== null) {
+      total += agg.pl;
+      if (agg.pl > 0) wins++;
+      else if (agg.pl < 0) losses++;
+    }
+    dep += agg.dep;
+    wd  += agg.wd;
+  }
+  const summary = blk.querySelector('.month-summary');
+  if (!summary) return;
+  const totalCls = total >= 0 ? 'green' : 'red';
+  const totalSign = total >= 0 ? '+' : '';
+  let html = ''
+    + `<span class="month-stat">Total: <strong class="${totalCls}">$${totalSign}${total.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></span>`
+    + `<span class="month-stat">Wins: <strong class="green">${wins}</strong></span>`
+    + `<span class="month-stat">Losses: <strong class="red">${losses}</strong></span>`;
+  if (dep !== 0) html += `<span class="month-stat">Dep: <strong style="color:#ef4444">-$${dep.toFixed(2)}</strong></span>`;
+  if (wd  !== 0) html += `<span class="month-stat">Wd: <strong style="color:#60a5fa">+$${Math.abs(wd).toFixed(2)}</strong></span>`;
+  if (dep !== 0 && wd !== 0) {
+    const net = dep + wd;
+    const nc  = net > 0 ? '#ef4444' : '#60a5fa';
+    const ns  = net > 0 ? '-$' + net.toFixed(2) : '+$' + Math.abs(net).toFixed(2);
+    html += `<span class="month-stat">Net: <strong style="color:${nc}">${ns}</strong></span>`;
+  }
+  summary.innerHTML = html;
 }
 
 // ── Tooltip ──────────────────────────────────────────────────────────────────
@@ -4788,6 +4929,7 @@ document.addEventListener('click', e => {
 });
 
 // ── Initialize from saved selection ─────────────────────────────────────────
+loadDateRange();
 loadSelection();
 updateCalendar();
 </script>
