@@ -70,11 +70,13 @@ class VantageParser(BaseParser):
         if not m:
             return 0.0
         snippet = text[m.end(): m.end() + 80].replace("\xa0", " ")
-        num = re.search(r"([-]?\d[\d,\.]*)", snippet)
+        # Vantage uses SPACE as thousands separator: "1 207.79" → 1207.79
+        # Also handles comma thousands: "1,207.79"
+        num = re.search(r"([-]?\d[\d, ]*(?:\.\d+)?)", snippet)
         if not num:
             return 0.0
         try:
-            return float(num.group(1).replace(",", ""))
+            return float(num.group(1).replace(",", "").replace(" ", ""))
         except ValueError:
             return 0.0
 
