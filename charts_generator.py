@@ -44,11 +44,19 @@ def generate_charts_html(records: List[DailyRecord], output_path: str = "output/
         brokers_d = {}
         for r in recs:
             if r.broker not in brokers_d:
-                brokers_d[r.broker] = {"pl": 0.0, "accounts": {}}
-            brokers_d[r.broker]["pl"]              += r.closed_pl
-            brokers_d[r.broker]["accounts"][r.account] = r.closed_pl
+                brokers_d[r.broker] = {"pl": 0.0, "dep": 0.0, "wd": 0.0, "accounts": {}}
+            brokers_d[r.broker]["pl"]  += r.closed_pl
+            brokers_d[r.broker]["dep"] += r.deposit
+            brokers_d[r.broker]["wd"]  += r.withdrawal
+            brokers_d[r.broker]["accounts"][r.account] = {
+                "pl":  r.closed_pl,
+                "dep": r.deposit,
+                "wd":  r.withdrawal,
+            }
         days_data[d.isoformat()] = {
-            "total":   sum(r.closed_pl for r in recs),
+            "total":   sum(r.closed_pl  for r in recs),
+            "dep":     sum(r.deposit    for r in recs),
+            "wd":      sum(r.withdrawal for r in recs),
             "brokers": brokers_d,
         }
 
@@ -104,6 +112,9 @@ def generate_charts_html(records: List[DailyRecord], output_path: str = "output/
   .stats-row{{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap}}
   .stat-chip{{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--muted)}}
   .stat-chip strong{{display:block;font-size:16px;font-weight:700;color:var(--text);margin-top:2px}}
+  .dot-legend{{display:flex;gap:18px;margin-top:14px;justify-content:center;flex-wrap:wrap}}
+  .dot-item{{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}}
+  .dot{{width:10px;height:10px;border-radius:50%;display:inline-block}}
   .green{{color:var(--green)}} .red{{color:var(--red)}}
   @media(max-width:600px){{
     .header{{padding:12px 16px}}
@@ -163,6 +174,11 @@ def generate_charts_html(records: List[DailyRecord], output_path: str = "output/
   <div class="stats-row" id="statsRow"></div>
   <div class="chart-wrap">
     <canvas id="mainChart"></canvas>
+  </div>
+  <div class="dot-legend" id="dotLegend">
+    <span class="dot-item"><span class="dot" style="background:#ef4444"></span>Deposit day</span>
+    <span class="dot-item"><span class="dot" style="background:#22c55e"></span>Withdrawal day</span>
+    <span class="dot-item"><span class="dot" style="background:#f59e0b"></span>Both same day</span>
   </div>
 </div>
 
@@ -251,9 +267,29 @@ function getPlForDate(iso, filter) {{
   if (filter.startsWith('account:')) {{
     const [,broker,acct] = filter.split(':');
     const ba = d.brokers[broker];
-    return (ba && ba.accounts[acct] !== undefined) ? ba.accounts[acct] : 0;
+    const a  = ba && ba.accounts[acct];
+    return a ? (a.pl || 0) : 0;
   }}
   return 0;
+}}
+
+function getDwForDate(iso, filter) {{
+  // Returns dep and wd for the given date+filter
+  const d = daysData[iso];
+  if (!d) return {{ dep: 0, wd: 0 }};
+  if (filter === 'ALL') return {{ dep: d.dep || 0, wd: d.wd || 0 }};
+  if (filter.startsWith('broker:')) {{
+    const b = filter.slice(7);
+    const bd = d.brokers[b];
+    return bd ? {{ dep: bd.dep || 0, wd: bd.wd || 0 }} : {{ dep: 0, wd: 0 }};
+  }}
+  if (filter.startsWith('account:')) {{
+    const [,broker,acct] = filter.split(':');
+    const ba = d.brokers[broker];
+    const a  = ba && ba.accounts[acct];
+    return a ? {{ dep: a.dep || 0, wd: a.wd || 0 }} : {{ dep: 0, wd: 0 }};
+  }}
+  return {{ dep: 0, wd: 0 }};
 }}
 
 function getAllDates() {{
@@ -264,15 +300,34 @@ function getAllDates() {{
 function buildEquityData(filter) {{
   const dates = getAllDates();
   let cum = 0;
-  const labels = [];
-  const values = [];
+  const labels      = [];
+  const values      = [];
+  const pointColors = [];   // per-point: red=dep, green=wd, transparent=neither
+  const pointRadii  = [];   // bigger when dep/wd, 0 otherwise (hidden by default)
+  const pointInfo   = [];   // tooltip data per point
   dates.forEach(iso => {{
     const pl = getPlForDate(iso, filter);
     cum += pl;
     labels.push(iso);
     values.push(parseFloat(cum.toFixed(2)));
+
+    const dw = getDwForDate(iso, filter);
+    pointInfo.push(dw);
+    if (dw.dep !== 0 && dw.wd === 0) {{
+      pointColors.push('#ef4444');  // red: deposit only
+      pointRadii.push(5);
+    }} else if (dw.wd !== 0 && dw.dep === 0) {{
+      pointColors.push('#22c55e');  // green: withdrawal only
+      pointRadii.push(5);
+    }} else if (dw.dep !== 0 && dw.wd !== 0) {{
+      pointColors.push('#f59e0b');  // amber: both on same day
+      pointRadii.push(5);
+    }} else {{
+      pointColors.push('rgba(0,0,0,0)');
+      pointRadii.push(0);
+    }}
   }});
-  return {{ labels, values }};
+  return {{ labels, values, pointColors, pointRadii, pointInfo }};
 }}
 
 // ── Monthly bar ───────────────────────────────────────────────────────────────
@@ -326,16 +381,19 @@ function renderChart() {{
 
   renderStats(filter);
 
-  const {{ labels, values }} = type === 'equity'
+  const built = type === 'equity'
     ? buildEquityData(filter)
     : buildMonthlyData(filter);
+  const labels = built.labels;
+  const values = built.values;
 
   if (chartInstance) {{ chartInstance.destroy(); chartInstance = null; }}
 
   const ctx = document.getElementById('mainChart').getContext('2d');
 
   if (type === 'equity') {{
-    // Line chart
+    // Line chart with dep/wd point markers
+    const pointInfo = built.pointInfo;
     chartInstance = new Chart(ctx, {{
       type: 'line',
       data: {{
@@ -344,8 +402,10 @@ function renderChart() {{
           label: 'Cumulative P/L',
           data: values,
           borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 4,
+          pointRadius:        built.pointRadii,
+          pointBackgroundColor: built.pointColors,
+          pointBorderColor:     built.pointColors,
+          pointHoverRadius: 6,
           fill: false,
           tension: 0.3,
           segment: {{
@@ -376,8 +436,18 @@ function renderChart() {{
             bodyColor: '#f1f5f9',
             callbacks: {{
               label: ctx => {{
+                if (ctx.datasetIndex !== 0) return null;
                 const v = ctx.parsed.y;
                 return ' P/L: $' + (v >= 0 ? '+' : '') + v.toLocaleString('en', {{minimumFractionDigits:2}});
+              }},
+              afterBody: ctx => {{
+                const i  = ctx[0].dataIndex;
+                const dw = pointInfo[i];
+                if (!dw) return '';
+                const lines = [];
+                if (dw.dep !== 0) lines.push(' Dep: -$' + dw.dep.toFixed(2));
+                if (dw.wd  !== 0) lines.push(' Wd:  +$' + Math.abs(dw.wd).toFixed(2));
+                return lines;
               }}
             }}
           }}
@@ -454,6 +524,7 @@ function renderChart() {{
 // ── Event handlers ────────────────────────────────────────────────────────────
 function onChartTypeChange(val) {{
   currentType = val;
+  document.getElementById('dotLegend').style.display = (val === 'equity') ? 'flex' : 'none';
   renderChart();
 }}
 
