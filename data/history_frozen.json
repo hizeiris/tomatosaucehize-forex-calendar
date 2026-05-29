@@ -1,6 +1,6 @@
 {
   "frozen_date": "2026-05-29",
-  "record_count": 615,
+  "record_count": 616,
   "records": [
     {
       "broker": "Vantage",
@@ -7994,6 +7994,19 @@
       "withdrawal": 0.0,
       "balance": 1.88,
       "equity": 1.88,
+      "floating_pl": 0.0,
+      "statement_type": "daily"
+    },
+    {
+      "broker": "AxiTrader",
+      "account": "unknown",
+      "date": "2026-05-29",
+      "closed_pl": 0.0,
+      "deposit_withdrawal": 0.0,
+      "deposit": 0.0,
+      "withdrawal": 0.0,
+      "balance": 0.0,
+      "equity": 0.0,
       "floating_pl": 0.0,
       "statement_type": "daily"
     }
