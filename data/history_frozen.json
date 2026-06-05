@@ -1,6 +1,6 @@
 {
-  "frozen_date": "2026-06-04",
-  "record_count": 626,
+  "frozen_date": "2026-06-05",
+  "record_count": 628,
   "records": [
     {
       "broker": "Vantage",
@@ -8131,6 +8131,32 @@
       "broker": "Hantec",
       "account": "50342137",
       "date": "2026-06-03",
+      "closed_pl": 0.0,
+      "deposit_withdrawal": 0.0,
+      "deposit": 0.0,
+      "withdrawal": 0.0,
+      "balance": 1.88,
+      "equity": 1.88,
+      "floating_pl": 0.0,
+      "statement_type": "daily"
+    },
+    {
+      "broker": "Vantage",
+      "account": "28144020",
+      "date": "2026-06-04",
+      "closed_pl": 361.75,
+      "deposit_withdrawal": 0.0,
+      "deposit": 0.0,
+      "withdrawal": 0.0,
+      "balance": 573.63,
+      "equity": 626.99,
+      "floating_pl": 53.36,
+      "statement_type": "daily"
+    },
+    {
+      "broker": "Hantec",
+      "account": "50342137",
+      "date": "2026-06-04",
       "closed_pl": 0.0,
       "deposit_withdrawal": 0.0,
       "deposit": 0.0,
