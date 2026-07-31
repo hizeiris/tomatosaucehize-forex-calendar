@@ -1,6 +1,6 @@
 {
   "frozen_date": "2026-07-31",
-  "record_count": 741,
+  "record_count": 746,
   "records": [
     {
       "broker": "Vantage",
@@ -9632,6 +9632,71 @@
       "withdrawal": 0.0,
       "balance": 1.88,
       "equity": 1.88,
+      "floating_pl": 0.0,
+      "statement_type": "daily"
+    },
+    {
+      "broker": "Vantage",
+      "account": "28144020",
+      "date": "2026-07-31",
+      "closed_pl": 0.0,
+      "deposit_withdrawal": -6.07,
+      "deposit": 0.0,
+      "withdrawal": -6.07,
+      "balance": 0.0,
+      "equity": 0.0,
+      "floating_pl": 0.0,
+      "statement_type": "daily"
+    },
+    {
+      "broker": "Vantage",
+      "account": "11501530",
+      "date": "2026-07-31",
+      "closed_pl": 0.0,
+      "deposit_withdrawal": -115.03,
+      "deposit": 0.0,
+      "withdrawal": -115.03,
+      "balance": 0.0,
+      "equity": 0.0,
+      "floating_pl": 0.0,
+      "statement_type": "daily"
+    },
+    {
+      "broker": "Hantec",
+      "account": "50342137",
+      "date": "2026-07-31",
+      "closed_pl": 0.0,
+      "deposit_withdrawal": 0.0,
+      "deposit": 0.0,
+      "withdrawal": 0.0,
+      "balance": 1.88,
+      "equity": 1.88,
+      "floating_pl": 0.0,
+      "statement_type": "daily"
+    },
+    {
+      "broker": "Hantec",
+      "account": "55016709",
+      "date": "2026-07-31",
+      "closed_pl": 0.0,
+      "deposit_withdrawal": 0.0,
+      "deposit": 0.0,
+      "withdrawal": 0.0,
+      "balance": 0.59,
+      "equity": 0.59,
+      "floating_pl": 0.0,
+      "statement_type": "daily"
+    },
+    {
+      "broker": "AxiTrader",
+      "account": "30010346",
+      "date": "2026-07-31",
+      "closed_pl": 0.0,
+      "deposit_withdrawal": 0.0,
+      "deposit": 0.0,
+      "withdrawal": 0.0,
+      "balance": 0.0,
+      "equity": 0.0,
       "floating_pl": 0.0,
       "statement_type": "daily"
     }
