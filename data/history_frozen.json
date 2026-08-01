@@ -1,6 +1,6 @@
 {
-  "frozen_date": "2026-07-31",
-  "record_count": 746,
+  "frozen_date": "2026-08-01",
+  "record_count": 747,
   "records": [
     {
       "broker": "Vantage",
@@ -9697,6 +9697,19 @@
       "withdrawal": 0.0,
       "balance": 0.0,
       "equity": 0.0,
+      "floating_pl": 0.0,
+      "statement_type": "daily"
+    },
+    {
+      "broker": "Vantage",
+      "account": "33666930",
+      "date": "2026-07-31",
+      "closed_pl": 608.09,
+      "deposit_withdrawal": 0.0,
+      "deposit": 0.0,
+      "withdrawal": 0.0,
+      "balance": 4527.57,
+      "equity": 4527.57,
       "floating_pl": 0.0,
       "statement_type": "daily"
     }
